@@ -20,10 +20,11 @@ namespace TTBot
 {
     class Program
     {
-        CommandService _commandService;
-        DiscordSocketClient _client;
-        ServiceProvider _serviceProvider;
-        IConfiguration _configuration;
+        private CommandService _commandService;
+        private DiscordSocketClient _client;
+        private ServiceProvider _serviceProvider;
+        private IConfiguration _configuration;
+
         static void Main(string[] args)
         {
             Console.WriteLine("Starting Bot..");
@@ -35,6 +36,7 @@ namespace TTBot
             _commandService = new CommandService();
             _client = new DiscordSocketClient(new DiscordSocketConfig { AlwaysDownloadUsers = true });
         }
+
         private async Task MainAsync(string[] args)
         {
             var services = new ServiceCollection();
@@ -69,7 +71,6 @@ namespace TTBot
         {
             SqlMapper.RemoveTypeMap(typeof(TimeSpan));
             SqlMapper.AddTypeHandler(typeof(TimeSpan), new TimeSpanHandler());
-            //  SqlMapper.AddTypeHandler(new UlongTypeHandler());
         }
 
         private void ScaffoldDatabase()
@@ -81,8 +82,6 @@ namespace TTBot
                 connection.CreateTableIfNotExists<LeaderboardEntry>();
                 connection.CreateTableIfNotExists<LeaderboardModerator>();
             }
-
-
         }
 
         private void InitServices(ServiceCollection services, string[] args)
@@ -92,8 +91,6 @@ namespace TTBot
                 .AddJsonFile("appsettings.json")
                 .AddEnvironmentVariables("TTBot_")
                 .AddCommandLine(args);
-
-
 
             services.AddSingleton<IConfiguration>(this._configuration = builder.Build());
             services.AddScoped<IModerator, Moderator>();
