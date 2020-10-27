@@ -176,5 +176,35 @@ namespace TTBot.Commands
             await Task.WhenAll(Context.Message.MentionedUsers.Select(async user => await _eventSignups.AddUserToEvent(existingEvent, user)));
             await GetSignups(eventName);
         }
+
+        [Command("remove", ignoreExtraArgs: true)]
+        public async Task Remove(string eventName)
+        {
+            var existingEvent = await _events.GetActiveEvent(eventName, Context.Guild.Id, Context.Channel.Id);
+            if (existingEvent == null)
+            {
+                await Context.Channel.SendMessageAsync($"Unable to find an active event with the name {eventName}");
+                return;
+            }
+
+            foreach (var user in Context.Message.MentionedUsers)
+            {
+                var existingSignup = await _eventSignups.GetSignUp(existingEvent, user);
+                if (existingSignup != null)
+                {
+                    await _eventSignups.Delete(existingSignup);
+                }
+            }
+
+            await Context.Channel.SendMessageAsync($"Removed {string.Join(' ', Context.Message.MentionedUsers.Select(user => user.Username))} from {eventName}");
+            await GetSignups(eventName);
+        }
+
+        [Command("help")]
+        public async Task Help()
+        {
+            await Context.Channel.SendMessageAsync("Use `!events active` to see a list of all active events. To join an event use the `!event signup` command with the name of the event. " +
+                "For example `!event signup ACC Championship`. To unsign from an event, use the `!event unsign` command with the name of the event. For example, `!event unsign ACC Championship`.");
+        }
     }
 }

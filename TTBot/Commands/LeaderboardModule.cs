@@ -29,6 +29,7 @@ namespace TTBot.Commands
             _permissionService = permissionService;
         }
 
+
         [Command("create", ignoreExtraArgs: true)]
         [Alias("add")]
         [Summary("Create a new leaderboard for a game")]
@@ -233,6 +234,12 @@ namespace TTBot.Commands
 
             }
             await Standings();
+        }
+
+        [Command("help")]
+        public async Task Help()
+        {
+            await Context.Channel.SendMessageAsync("You can submit times to an active leadboard by using the command `!leaderboard submit` with your time. For example `!leaderboard submit 01:45.123`. All submission messages must include an attached image as proof of your time.");
         }
     }
 
