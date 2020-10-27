@@ -1,0 +1,11 @@
+{
+  "profiles": {
+    "TTBot": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "ENVIRONMENT": "development",
+        "TTBot_Token": "NzcwNzA5OTI5NTkyODgxMTYy.X5hhjg.BTS4ZJAHAo2IyKArA16HusT_gEA"
+      }
+    }
+  }
+}
