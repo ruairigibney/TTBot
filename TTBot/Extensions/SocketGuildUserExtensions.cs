@@ -8,5 +8,9 @@ namespace TTBot.Extensions
 {
     public static class SocketGuildUserExtensions
     {
+        public static string GetDisplayName(this SocketGuildUser @this)
+        {
+            return string.IsNullOrEmpty(@this.Nickname) ? @this.Username : @this.Nickname;
+        }
     }
 }

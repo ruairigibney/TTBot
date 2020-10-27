@@ -18,7 +18,7 @@ namespace TTBot.Services
             _moderator = moderator;
         }
 
-        public async Task<bool> UserIsModerator(SocketCommandContext context, SocketGuildUser user)
+        public async Task<bool> UserIsModeratorAsync(SocketCommandContext context, SocketGuildUser user)
         {
             if (user.GuildPermissions.ManageGuild)
             {

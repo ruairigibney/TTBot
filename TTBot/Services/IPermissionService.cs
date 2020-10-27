@@ -6,6 +6,6 @@ namespace TTBot.Services
 {
     public interface IPermissionService
     {
-        Task<bool> UserIsModerator(SocketCommandContext context, SocketGuildUser user);
+        Task<bool> UserIsModeratorAsync(SocketCommandContext context, SocketGuildUser user);
     }
 }
