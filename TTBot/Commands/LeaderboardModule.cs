@@ -34,7 +34,7 @@ namespace TTBot.Commands
         [Summary("Create a new leaderboard for a game")]
         public async Task Create([Remainder] string gameName)
         {
-            if (!await _permissionService.UserIsModerator(Context, Context.User as SocketGuildUser))
+            if (!await _permissionService.UserIsModeratorAsync(Context, Context.User as SocketGuildUser))
             {
                 await Context.Channel.SendMessageAsync("You dont have permission to run this command");
                 return;
@@ -47,7 +47,7 @@ namespace TTBot.Commands
                 return;
             }
             await _leaderboards.AddAsync(this.Context.Guild.Id, this.Context.Channel.Id, gameName);
-            await Context.Channel.SendMessageAsync($"Created new leaderboard for {gameName}. Get racing!");
+            await Context.Channel.SendMessageAsync($"Created new leaderboard for {gameName}. Submit a time to the leaderboard by using the command `!leaderboard submit` with your time. For example `!leaderboard submit 01:45.002`. All submission messages must have an attached image as proof of your time!{Environment.NewLine}Get racing!");
         }
 
         [Command("active")]
@@ -69,7 +69,7 @@ namespace TTBot.Commands
         [Command("close")]
         public async Task Close()
         {
-            if (!await _permissionService.UserIsModerator(Context, Context.User as SocketGuildUser))
+            if (!await _permissionService.UserIsModeratorAsync(Context, Context.User as SocketGuildUser))
             {
                 await Context.Channel.SendMessageAsync("You dont have permission to run this command");
                 return;
@@ -104,7 +104,7 @@ namespace TTBot.Commands
                 await Context.Channel.SendMessageAsync($"Please attach a screenshot of your time as proof!");
                 return;
             }
-            var regex = @"([0-9]{1,2})\:([0-9]{1,2})(?>([.:,])([0-9]{0,3}))?";
+            var regex = @"([0-9]{1,2})([.:,])([0-9]{1,2})(?>([.:,])([0-9]{0,3}))?";
             var matchRes = Regex.Match(time.Trim(), regex);
             if (!matchRes.Success)
             {
@@ -117,14 +117,14 @@ namespace TTBot.Commands
             var minsMatch = matchRes.Groups[1];
             var numberOfMinsDigits = minsMatch.Length;
 
-            var secondsMatch = matchRes.Groups[2];
+            var secondsMatch = matchRes.Groups[3];
             var numberOfSecondsDigits = secondsMatch.Length;
 
-            var hasMilliseconds = numGroups == 5;
+            var hasMilliseconds = numGroups == 6;
             var numOfMillisecondsDigits = 0;
             if (hasMilliseconds)
             {
-                var msMatch = matchRes.Groups[4];
+                var msMatch = matchRes.Groups[5];
                 numOfMillisecondsDigits = msMatch.Length;
             }
             var formatStringBuilder = new StringBuilder();
@@ -133,14 +133,14 @@ namespace TTBot.Commands
             {
                 formatStringBuilder.Append("m");
             }
-            formatStringBuilder.Append(@"\:");
+            formatStringBuilder.Append(@$"\{matchRes.Groups[2].Value}"); //seperator
 
             for (int i = 0; i < numberOfSecondsDigits; i++)
             {
                 formatStringBuilder.Append("s");
             }
 
-            formatStringBuilder.Append(@$"\{matchRes.Groups[3].Value}"); //seperator
+            formatStringBuilder.Append(@$"\{matchRes.Groups[4].Value}"); //seperator
             for (int i = 0; i < numOfMillisecondsDigits; i++)
             {
                 formatStringBuilder.Append("f");
@@ -206,7 +206,7 @@ namespace TTBot.Commands
         [Command("invalidate", ignoreExtraArgs: true)]
         public async Task Invalidate()
         {
-            if (!await _permissionService.UserIsModerator(Context, Context.User as SocketGuildUser))
+            if (!await _permissionService.UserIsModeratorAsync(Context, Context.User as SocketGuildUser))
             {
                 await Context.Channel.SendMessageAsync("You dont have permission to run this command");
                 return;

@@ -81,6 +81,8 @@ namespace TTBot
                 connection.CreateTableIfNotExists<Leaderboard>();
                 connection.CreateTableIfNotExists<LeaderboardEntry>();
                 connection.CreateTableIfNotExists<LeaderboardModerator>();
+                connection.CreateTableIfNotExists<Event>();
+                connection.CreateTableIfNotExists<EventSignup>();
             }
         }
 
@@ -99,6 +101,8 @@ namespace TTBot
             var conString = GetConnString();
             services.AddSingleton<IDbConnectionFactory>(new OrmLiteConnectionFactory(conString, SqliteDialect.Provider));
             services.AddScoped<IPermissionService, PermissionService>();
+            services.AddScoped<IEvents, Events>();
+            services.AddScoped<IEventSignups, EventSignups>();
             services.AddSingleton(_client);
         }
 
