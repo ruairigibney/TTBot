@@ -26,19 +26,19 @@ namespace TTBot.DataAccess
             }
         }
 
-        public async Task<Event> GetActiveEvent(string name, ulong guildId, ulong channelId)
+        public async Task<EventsWithCount> GetActiveEvent(string name, ulong guildId, ulong channelId)
         {
             using (var con = _conFactory.Open())
             {
-                return (await con.SelectAsync<Event>(ev => ev.Name == name && ev.GuildId == guildId.ToString() && ev.ChannelId == channelId.ToString() && !ev.Closed)).SingleOrDefault();
+                return (await con.SelectAsync<EventsWithCount>(ev => ev.Name == name && ev.GuildId == guildId.ToString() && ev.ChannelId == channelId.ToString() && !ev.Closed)).SingleOrDefault();
             }
         }
 
-        public async Task<List<Event>> GetActiveEvents(ulong guildId, ulong channelId)
+        public async Task<List<EventsWithCount>> GetActiveEvents(ulong guildId, ulong channelId)
         {
             using (var con = _conFactory.Open())
             {
-                return await con.SelectAsync<Event>(ev => ev.GuildId == guildId.ToString() && ev.ChannelId == channelId.ToString() && !ev.Closed);
+                return await con.SelectAsync<EventsWithCount>(ev => ev.GuildId == guildId.ToString() && ev.ChannelId == channelId.ToString() && !ev.Closed);
             }
         }
     }

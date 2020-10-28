@@ -6,8 +6,8 @@ namespace TTBot.DataAccess
 {
     public interface IEvents
     {
-        Task<List<Event>> GetActiveEvents(ulong guildId, ulong channelId);
-        Task<Event> GetActiveEvent(string name, ulong guildId, ulong channelId);
+        Task<List<EventsWithCount>> GetActiveEvents(ulong guildId, ulong channelId);
+        Task<EventsWithCount> GetActiveEvent(string name, ulong guildId, ulong channelId);
         Task SaveAsync(Event @event);
     }
 }

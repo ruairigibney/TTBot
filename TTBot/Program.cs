@@ -83,6 +83,12 @@ namespace TTBot
                 connection.CreateTableIfNotExists<LeaderboardModerator>();
                 connection.CreateTableIfNotExists<Event>();
                 connection.CreateTableIfNotExists<EventSignup>();
+                connection.Execute(@"CREATE VIEW IF NOT EXISTS EventsWithCount
+                                    AS
+                                    SELECT *, (select count(*) from EventSignup where EventId = event.Id) as ParticipantCount
+                                    FROM [Event]
+                                    ");
+
             }
         }
 

@@ -29,7 +29,7 @@ namespace TTBot.Commands
 
         [Command("create")]
         [Alias("add")]
-        public async Task Create([Remainder] string eventName)
+        public async Task Create(string eventName, int? capacity = null)
         {
             var author = Context.Message.Author as SocketGuildUser;
             if (!await _permissionService.UserIsModeratorAsync(Context, author))
@@ -51,7 +51,8 @@ namespace TTBot.Commands
                 ChannelId = Context.Channel.Id.ToString(),
                 GuildId = Context.Guild.Id.ToString(),
                 Closed = false,
-                Name = eventName
+                Name = eventName,
+                Capacity = capacity
             });
 
             await Context.Channel.SendMessageAsync($"{Context.Message.Author.Mention} has created the event {eventName}! Sign up to the event by typing `!event signup {eventName}` in this channel. If you've signed up and can no longer attend, use the command `!event unsign {eventName}`");
@@ -92,7 +93,7 @@ namespace TTBot.Commands
             }
             else
             {
-                await Context.Channel.SendMessageAsync($"Currently active events:{Environment.NewLine}{string.Join(Environment.NewLine, activeEvents.Select(ev => ev.Name))}");
+                await Context.Channel.SendMessageAsync($"Currently active events:{Environment.NewLine}{string.Join(Environment.NewLine, activeEvents.Select(ev => $"{ev.Name}{(ev.SpaceLimited ? $" - {ev.ParticipantCount}/{ev.Capacity} participants" : "")}"))}");
                 await Context.Channel.SendMessageAsync($"Join any active event with the command `!event signup event name`");
             }
         }
@@ -111,6 +112,12 @@ namespace TTBot.Commands
             if (existingSignup != null)
             {
                 await Context.Channel.SendMessageAsync($"You're already signed up to {eventName}");
+                return;
+            }
+
+            if (existingEvent.SpaceLimited && existingEvent.ParticipantCount >= existingEvent.Capacity)
+            {
+                await Context.Channel.SendMessageAsync($"Sorry, but {eventName} is already full! Keep an eye out in-case someone pulls out.");
                 return;
             }
             await _eventSignups.AddUserToEvent(existingEvent, Context.Message.Author as SocketGuildUser);
@@ -152,7 +159,17 @@ namespace TTBot.Commands
 
             var signUps = await _eventSignups.GetAllSignupsForEvent(existingEvent);
             var users = await Task.WhenAll(signUps.Select(async sup => (await Context.Channel.GetUserAsync(Convert.ToUInt64(sup.UserId)) as SocketGuildUser)));
-            await Context.Channel.SendMessageAsync($"There's {users.Length} racers signed up for {eventName}.{Environment.NewLine}{string.Join(Environment.NewLine, users.Select(u => u.GetDisplayName()))}");
+
+            var usersInEvent = string.Join(Environment.NewLine, users.Select(u => u.GetDisplayName()));
+
+            if (existingEvent.SpaceLimited)
+            {
+                await Context.Channel.SendMessageAsync($"There's {users.Length}/{existingEvent.Capacity} racers signed up for {eventName}.{Environment.NewLine}" + usersInEvent);
+            }
+            else
+            {
+                await Context.Channel.SendMessageAsync($"There's {users.Length} racers signed up for {eventName}.{Environment.NewLine}" + usersInEvent);
+            }
         }
 
         [Command("bulkadd", ignoreExtraArgs: true)]

@@ -32,7 +32,8 @@ namespace TTBot.DataAccess
         {
             using (var connection = _conFactory.Open())
             {
-                return await connection.QueryAsync<Leaderboard>("SELECT * FROM Leaderboards WHERE guildId = @guildId and active =1", new { guildId = (long)guildId });
+                return await connection.SelectAsync<Leaderboard>(l => l.GuildId == guildId.ToString() && l.Active);
+                //return await connection.QueryAsync<Leaderboard>("SELECT * FROM Leaderboards WHERE guildId = @guildId and active =1", new { guildId = (long)guildId });
             }
         }
         public async Task AddAsync(ulong guildId, ulong channelId, string game, DateTime? endDate = null, bool active = true)
@@ -55,6 +56,7 @@ namespace TTBot.DataAccess
         {
             using (var connection = _conFactory.Open())
             {
+                return await connection.SingleAsync<Leaderboard>(l => l.GuildId == guildId.ToString() && l.ChannelId == channelId.ToString() && l.Active);
                 return await connection.QuerySingleOrDefaultAsync<Leaderboard>("SELECT * FROM Leaderboards WHERE guildId = @guildId AND active =1 AND channelId =@channelId", new { guildId = guildId.ToString(), channelId = channelId.ToString() });
             }
         }

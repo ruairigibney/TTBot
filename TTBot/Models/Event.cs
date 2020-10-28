@@ -13,5 +13,8 @@ namespace TTBot.Models
         public string GuildId { get; set; }
         public string ChannelId { get; set; }
         public bool Closed { get; set; }
+        public int? Capacity { get; set; }
+        [Ignore]
+        public bool SpaceLimited => Capacity.HasValue;
     }
 }
