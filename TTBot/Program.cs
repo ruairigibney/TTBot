@@ -34,7 +34,7 @@ namespace TTBot
         public Program()
         {
             _commandService = new CommandService();
-            _client = new DiscordSocketClient(new DiscordSocketConfig { AlwaysDownloadUsers = true });
+            _client = new DiscordSocketClient(new DiscordSocketConfig { AlwaysDownloadUsers = true, GatewayIntents = GatewayIntents.GuildMembers  | GatewayIntents.GuildMessages | GatewayIntents.Guilds});
         }
 
         private async Task MainAsync(string[] args)
@@ -49,6 +49,13 @@ namespace TTBot
 
             _client.MessageReceived += MessageReceived;
             _client.Log += Log;
+            //_client.GuildAvailable += async (guild) =>
+            //{
+            //    DateTime startTime = DateTime.Now;
+            //    Console.WriteLine("Starting user download " + guild.Name);
+            //    await _client.DownloadUsersAsync(new[] { guild });
+            //    Console.WriteLine("Finished user download in" + (DateTime.Now - startTime).Seconds + guild.Name);
+            //};
             await _client.LoginAsync(TokenType.Bot, _configuration.GetValue<string>("Token"));
             await _client.StartAsync();
             await Task.Delay(-1);
@@ -135,6 +142,11 @@ namespace TTBot
             {
                 Console.WriteLine("Error: " + commandResult.ErrorReason);
                 Console.WriteLine(commandResult.ToString());
+
+                if(commandResult.Error == CommandError.BadArgCount || commandResult.Error == CommandError.ParseFailed)
+                {
+                    await socketMessage.Channel.SendMessageAsync("Error running command. Try wrapping command parameters \"quotes\"");
+                }
             }
         }
         private static Task Log(LogMessage msg)
