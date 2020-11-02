@@ -9,5 +9,19 @@ namespace TTBot.Models
     public class EventsWithCount : Event
     {
         public int ParticipantCount { get; set; }
+
+        [Ignore]
+        public bool Full
+        {
+            get
+            {
+                if (!SpaceLimited)
+                {
+                    return false;
+                }
+
+                return ParticipantCount >= Capacity;
+            }
+        }
     }
 }

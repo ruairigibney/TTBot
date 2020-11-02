@@ -1,4 +1,5 @@
-﻿using Discord.Commands;
+﻿using Discord;
+using Discord.Commands;
 using Discord.WebSocket;
 using System;
 using System.Collections.Generic;
@@ -8,6 +9,7 @@ using System.Text;
 using System.Threading.Tasks;
 using TTBot.DataAccess;
 using TTBot.Extensions;
+using TTBot.Models;
 using TTBot.Services;
 
 namespace TTBot.Commands
@@ -19,17 +21,21 @@ namespace TTBot.Commands
         private readonly IEvents _events;
         private readonly IPermissionService _permissionService;
         private readonly IEventSignups _eventSignups;
+        private readonly IConfirmationChecks _confirmationChecks;
+        private readonly IConfirmationCheckPrinter _confirmationCheckPrinter;
 
-        public EventModule(IEvents events, IPermissionService permissionService, IEventSignups eventSignups)
+        public EventModule(IEvents events, IPermissionService permissionService, IEventSignups eventSignups, IConfirmationChecks confirmationChecks, IConfirmationCheckPrinter confirmationCheckPrinter)
         {
             _events = events;
             _permissionService = permissionService;
             _eventSignups = eventSignups;
+            _confirmationChecks = confirmationChecks;
+            _confirmationCheckPrinter = confirmationCheckPrinter;
         }
 
         [Command("create")]
         [Alias("add")]
-        public async Task Create(string eventName, int? capacity = null)
+        public async Task Create(string eventName, string shortName, int? capacity = null)
         {
             var author = Context.Message.Author as SocketGuildUser;
             if (!await _permissionService.UserIsModeratorAsync(Context, author))
@@ -39,23 +45,24 @@ namespace TTBot.Commands
             }
 
             var existingEvent = await _events.GetActiveEvent(eventName, Context.Guild.Id, Context.Channel.Id);
-
-            if (existingEvent != null)
+            var existingEventWithAlias = await _events.GetActiveEvent(shortName, Context.Guild.Id, Context.Channel.Id);
+            if (existingEvent != null || existingEventWithAlias != null)
             {
-                await Context.Channel.SendMessageAsync("There is already an active event with that name for this channel. Event names must be unique!");
+                await Context.Channel.SendMessageAsync("There is already an active event with that name or short name for this channel. Event names must be unique!");
                 return;
             }
-
-            await _events.SaveAsync(new Models.Event
+            var @event = new Models.Event
             {
                 ChannelId = Context.Channel.Id.ToString(),
                 GuildId = Context.Guild.Id.ToString(),
+                ShortName = shortName,
                 Closed = false,
                 Name = eventName,
                 Capacity = capacity
-            });
+            };
+            await _events.SaveAsync(@event);
 
-            await Context.Channel.SendMessageAsync($"{Context.Message.Author.Mention} has created the event {eventName}! Sign up to the event by typing `!event signup {eventName}` in this channel. If you've signed up and can no longer attend, use the command `!event unsign {eventName}`");
+            await Context.Channel.SendMessageAsync($"{Context.Message.Author.Mention} has created the event {eventName}! Sign up to the event by typing `!event join {@event.DisplayName}` in this channel. If you've signed up and can no longer attend, use the command `!event unsign {@event.DisplayName}`");
         }
 
         [Command("close")]
@@ -79,7 +86,7 @@ namespace TTBot.Commands
             existingEvent.Closed = true;
             await _events.SaveAsync(existingEvent);
 
-            await Context.Channel.SendMessageAsync($"{eventName} is now closed!");
+            await Context.Channel.SendMessageAsync($"{existingEvent.Name} is now closed!");
         }
 
         [Command("active")]
@@ -108,8 +115,7 @@ namespace TTBot.Commands
                 await Context.Channel.SendMessageAsync($"Unable to find an active event with the name {eventName}");
                 return;
             }
-            var existingSignup = await _eventSignups.GetSignUp(existingEvent, Context.Message.Author);
-            if (existingSignup != null)
+            if (await _eventSignups.GetSignUp(existingEvent, Context.Message.Author) != null)
             {
                 await Context.Channel.SendMessageAsync($"You're already signed up to {eventName}");
                 return;
@@ -121,8 +127,9 @@ namespace TTBot.Commands
                 return;
             }
             await _eventSignups.AddUserToEvent(existingEvent, Context.Message.Author as SocketGuildUser);
-            await Context.Channel.SendMessageAsync($"Thanks {Context.Message.Author.Mention}! You've been signed up to {eventName}. ");
+            await Context.Channel.SendMessageAsync($"Thanks {Context.Message.Author.Mention}! You've been signed up to {existingEvent.Name}. ");
             await GetSignups(eventName);
+            await UpdateConfirmationCheckForEvent(existingEvent);
         }
 
         [Command("unsign")]
@@ -142,8 +149,9 @@ namespace TTBot.Commands
                 return;
             }
             await _eventSignups.Delete(existingSignup);
-            await Context.Channel.SendMessageAsync($"Thanks { Context.Message.Author.Mention}! You're no longer signed up to {eventName}.");
+            await Context.Channel.SendMessageAsync($"Thanks { Context.Message.Author.Mention}! You're no longer signed up to {existingEvent.Name}.");
             await GetSignups(eventName);
+            await UpdateConfirmationCheckForEvent(existingEvent);
         }
 
         [Command("signups")]
@@ -161,15 +169,19 @@ namespace TTBot.Commands
             var users = await Task.WhenAll(signUps.Select(async sup => (await Context.Channel.GetUserAsync(Convert.ToUInt64(sup.UserId)) as SocketGuildUser)));
 
             var usersInEvent = string.Join(Environment.NewLine, users.Select(u => u.GetDisplayName()));
-
+            var message = $"**{existingEvent.Name}**{Environment.NewLine}";
             if (existingEvent.SpaceLimited)
             {
-                await Context.Channel.SendMessageAsync($"There's {users.Length}/{existingEvent.Capacity} racers signed up for {eventName}.{Environment.NewLine}" + usersInEvent);
+                message += $"There's {users.Length} out of {existingEvent.Capacity}";
             }
             else
             {
-                await Context.Channel.SendMessageAsync($"There's {users.Length} racers signed up for {eventName}.{Environment.NewLine}" + usersInEvent);
+                message += $"There's {users.Length}";
             }
+
+            message += $" racers signed up for {eventName}.{Environment.NewLine}{ usersInEvent}{Environment.NewLine}{Environment.NewLine}Sign up to this event with `!event join {existingEvent.DisplayName}`";
+
+            await Context.Channel.SendMessageAsync(message);
         }
 
         [Command("bulkadd", ignoreExtraArgs: true)]
@@ -192,6 +204,7 @@ namespace TTBot.Commands
 
             await Task.WhenAll(Context.Message.MentionedUsers.Select(async user => await _eventSignups.AddUserToEvent(existingEvent, user)));
             await GetSignups(eventName);
+            await UpdateConfirmationCheckForEvent(existingEvent);
         }
 
         [Command("remove", ignoreExtraArgs: true)]
@@ -215,13 +228,53 @@ namespace TTBot.Commands
 
             await Context.Channel.SendMessageAsync($"Removed {string.Join(' ', Context.Message.MentionedUsers.Select(user => user.Username))} from {eventName}");
             await GetSignups(eventName);
+            await UpdateConfirmationCheckForEvent(existingEvent);
         }
 
         [Command("help")]
         public async Task Help()
         {
-            await Context.Channel.SendMessageAsync("Use `!events active` to see a list of all active events. To join an event use the `!event signup` command with the name of the event. " +
-                "For example `!event signup ACC Championship`. To unsign from an event, use the `!event unsign` command with the name of the event. For example, `!event unsign ACC Championship`.");
+            await Context.Channel.SendMessageAsync("Use `!events active` to see a list of all active events. To join an event use the `!event join` command with the name of the event. " +
+                "For example `!event join ACC Championship`. To unsign from an event, use the `!event unsign` command with the name of the event. For example, `!event unsign ACC Championship`.");
+        }
+
+        [Command("confirm")]
+        public async Task Confirm([Remainder] string eventName)
+        {
+            if (!await _permissionService.AuthorIsModerator(Context))
+            {
+                return;
+            }
+
+            var existingEvent = await _events.GetActiveEvent(eventName, Context.Guild.Id, Context.Channel.Id);
+            if (existingEvent == null)
+            {
+                await Context.Channel.SendMessageAsync($"Unable to find an active event with the name {eventName}");
+                return;
+            }
+
+            var message = await Context.Channel.SendMessageAsync("Starting Confirmation Check..");
+            await _confirmationChecks.SaveAsync(new ConfirmationCheck()
+            {
+                EventId = existingEvent.Id,
+                MessageId = message.Id.ToString()
+            });
+            await _confirmationCheckPrinter.WriteMessage(this.Context.Channel, message, existingEvent);
+        }
+
+        private async Task UpdateConfirmationCheckForEvent(EventsWithCount @event)
+        {
+            var confirmationCheck = await _confirmationChecks.GetMostRecentConfirmationCheckForEventAsync(@event.Id);
+            if (confirmationCheck == null)
+            {
+                return;
+            }
+            var message = await Context.Channel.GetMessageAsync(Convert.ToUInt64(confirmationCheck.MessageId));
+            if (message == null)
+            {
+                return;
+            }
+            await _confirmationCheckPrinter.WriteMessage(Context.Channel, (IUserMessage)message, @event);
         }
     }
 }

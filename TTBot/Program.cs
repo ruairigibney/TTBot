@@ -34,7 +34,7 @@ namespace TTBot
         public Program()
         {
             _commandService = new CommandService();
-            _client = new DiscordSocketClient(new DiscordSocketConfig { AlwaysDownloadUsers = true, GatewayIntents = GatewayIntents.GuildMembers  | GatewayIntents.GuildMessages | GatewayIntents.Guilds});
+            _client = new DiscordSocketClient(new DiscordSocketConfig { AlwaysDownloadUsers = true, MessageCacheSize = 1000, GatewayIntents = GatewayIntents.GuildMembers | GatewayIntents.GuildMessages | GatewayIntents.Guilds });
         }
 
         private async Task MainAsync(string[] args)
@@ -47,18 +47,33 @@ namespace TTBot
             ScaffoldDatabase();
             await InitCommands();
 
-            _client.MessageReceived += MessageReceived;
+              _client.MessageReceived += MessageReceived;
+            //   _client.ReactionAdded += OnReactionChange;
+            //   _client.ReactionRemoved += OnReactionChange;
+
             _client.Log += Log;
-            //_client.GuildAvailable += async (guild) =>
-            //{
-            //    DateTime startTime = DateTime.Now;
-            //    Console.WriteLine("Starting user download " + guild.Name);
-            //    await _client.DownloadUsersAsync(new[] { guild });
-            //    Console.WriteLine("Finished user download in" + (DateTime.Now - startTime).Seconds + guild.Name);
-            //};
+
             await _client.LoginAsync(TokenType.Bot, _configuration.GetValue<string>("Token"));
             await _client.StartAsync();
             await Task.Delay(-1);
+        }
+
+        private async Task OnReactionChange(Cacheable<IUserMessage, ulong> cacheableMessage, ISocketMessageChannel channel, SocketReaction _)
+        {
+            var message = await cacheableMessage.GetOrDownloadAsync();
+            if (message.Author.Id != _client.CurrentUser.Id)
+                return;
+            var confirmationPrinter = _serviceProvider.GetRequiredService<IConfirmationCheckPrinter>();
+            var confirmationsDAL = _serviceProvider.GetRequiredService<IConfirmationChecks>();
+            var eventsDal = _serviceProvider.GetRequiredService<IEvents>();
+            var confirmationCheck = await confirmationsDAL.GetConfirmationCheckByMessageId(message.Id);
+            if (confirmationCheck == null)
+            {
+                return;
+            }
+
+            var @event = await eventsDal.GetActiveEvent(confirmationCheck.EventId);
+            await confirmationPrinter.WriteMessage(channel, message, @event);
         }
 
         private static string GetDataDirectory() => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "TTBot");
@@ -90,6 +105,7 @@ namespace TTBot
                 connection.CreateTableIfNotExists<LeaderboardModerator>();
                 connection.CreateTableIfNotExists<Event>();
                 connection.CreateTableIfNotExists<EventSignup>();
+                connection.CreateTableIfNotExists<ConfirmationCheck>();
                 connection.Execute(@"CREATE VIEW IF NOT EXISTS EventsWithCount
                                     AS
                                     SELECT *, (select count(*) from EventSignup where EventId = event.Id) as ParticipantCount
@@ -116,6 +132,8 @@ namespace TTBot
             services.AddScoped<IPermissionService, PermissionService>();
             services.AddScoped<IEvents, Events>();
             services.AddScoped<IEventSignups, EventSignups>();
+            services.AddScoped<IConfirmationChecks, ConfirmationChecks>();
+            services.AddScoped<IConfirmationCheckPrinter, ConfirmationCheckPrinter>();
             services.AddSingleton(_client);
         }
 
@@ -143,9 +161,9 @@ namespace TTBot
                 Console.WriteLine("Error: " + commandResult.ErrorReason);
                 Console.WriteLine(commandResult.ToString());
 
-                if(commandResult.Error == CommandError.BadArgCount || commandResult.Error == CommandError.ParseFailed)
+                if (commandResult.Error == CommandError.BadArgCount || commandResult.Error == CommandError.ParseFailed)
                 {
-                    await socketMessage.Channel.SendMessageAsync("Error running command. Try wrapping command parameters \"quotes\"");
+                    await socketMessage.Channel.SendMessageAsync("Error running command. Try wrapping command parameters in \"quotes\"");
                 }
             }
         }
