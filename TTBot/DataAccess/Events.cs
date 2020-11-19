@@ -30,7 +30,7 @@ namespace TTBot.DataAccess
         {
             using (var con = await _conFactory.OpenAsync())
             {
-                return (await con.SelectAsync<EventsWithCount>(ev => (ev.Name == name || (ev.ShortName != null && ev.ShortName == name)) && ev.GuildId == guildId.ToString() && ev.ChannelId == channelId.ToString() && !ev.Closed)).SingleOrDefault();
+                return (await con.SelectAsync<EventsWithCount>(ev => (ev.Name.ToLower() == name.ToLower() || (ev.ShortName != null && ev.ShortName.ToLower() == name.ToLower())) && ev.GuildId == guildId.ToString() && ev.ChannelId == channelId.ToString() && !ev.Closed)).SingleOrDefault();
             }
         }
 

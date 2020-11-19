@@ -40,14 +40,15 @@ namespace TTBot
         private async Task MainAsync(string[] args)
         {
             var services = new ServiceCollection();
-            CreateDataDirectory();
+
             InitServices(services, args);
+            CreateDataDirectory();
             InitDapperTypeHandlers();
             _serviceProvider = services.BuildServiceProvider();
             ScaffoldDatabase();
             await InitCommands();
 
-              _client.MessageReceived += MessageReceived;
+            _client.MessageReceived += MessageReceived;
             //   _client.ReactionAdded += OnReactionChange;
             //   _client.ReactionRemoved += OnReactionChange;
 
@@ -76,7 +77,11 @@ namespace TTBot
             await confirmationPrinter.WriteMessage(channel, message, @event);
         }
 
-        private static string GetDataDirectory() => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "TTBot");
+        private string GetDataDirectory()
+        {
+            return _configuration.GetValue<string>("Database", Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "TTBot"));
+
+        }
 
         private void CreateDataDirectory()
         {
@@ -87,7 +92,7 @@ namespace TTBot
             }
         }
 
-        private static string GetConnString() => $"{Path.Combine(GetDataDirectory(), "database.sqlite")}";
+        private string GetConnString() => $"{Path.Combine(GetDataDirectory(), "database.sqlite")}";
 
         private void InitDapperTypeHandlers()
         {
@@ -134,6 +139,7 @@ namespace TTBot
             services.AddScoped<IEventSignups, EventSignups>();
             services.AddScoped<IConfirmationChecks, ConfirmationChecks>();
             services.AddScoped<IConfirmationCheckPrinter, ConfirmationCheckPrinter>();
+            services.AddScoped<IEventParticipantService, EventParticipantService>();
             services.AddSingleton(_client);
         }
 

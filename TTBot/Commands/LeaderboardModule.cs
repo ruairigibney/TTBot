@@ -155,7 +155,6 @@ namespace TTBot.Commands
 
             await _leaderboardEntries.AddAsync(leaderboard.Id, timespan, Context.User.Id, Context.Message.Attachments.First().Url);
             await Context.Channel.SendMessageAsync($"Thanks {Context.User.Mention}! Your entry has been saved.");
-            await Context.Channel.SendMessageAsync("Current standings");
             await Standings();
         }
 
@@ -176,6 +175,7 @@ namespace TTBot.Commands
                 return;
             }
             StringBuilder standingsMessageBuilder = new StringBuilder();
+            standingsMessageBuilder.AppendLine($"**{leaderboard.Description} Standings**");
             for (int i = 0; i < standings.Count; i++)
             {
                 var entry = standings[i];

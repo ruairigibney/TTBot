@@ -19,5 +19,6 @@ namespace TTBot.Models
         public bool SpaceLimited => Capacity.HasValue;
         [Ignore]
         public string DisplayName => ShortName ?? Name;
+        public string MessageId { get; set; }
     }
 }
