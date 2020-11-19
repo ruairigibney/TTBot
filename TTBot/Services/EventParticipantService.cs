@@ -82,7 +82,7 @@ namespace TTBot.Services
                 message += $"There's {users.Length}";
             }
 
-            message += $" racers signed up for {@event.Name}.\n\n{ usersInEvent}\n";      
+            message += $" racers signed up for {@event.Name}.\n\n{ usersInEvent}\n";
 
             var builder = new EmbedBuilder()
             .WithTitle(@event.Name)
@@ -100,6 +100,12 @@ namespace TTBot.Services
                 }
             }
             return builder.Build();
+        }
+
+        public async Task UpdatePinnedMessageForEvent(ISocketMessageChannel channel, EventsWithCount @event, IUserMessage message)
+        {
+            var messageEmbed = await GetParticipantsEmbed(channel, @event, await _eventSignups.GetAllSignupsForEvent(@event));
+            await (message).ModifyAsync(prop => prop.Embed = messageEmbed);
         }
 
         public async Task UpdatePinnedMessageForEvent(ISocketMessageChannel channel, EventsWithCount @event)

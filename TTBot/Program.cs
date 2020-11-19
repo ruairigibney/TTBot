@@ -74,7 +74,7 @@ namespace TTBot
                 return;
 
             var @event = await events.GetEventByMessageIdAsync(cacheableMessage.Id);
-            if (@event == null)
+            if (@event == null || @event.Closed)
             {
                 return;
             }
@@ -86,7 +86,7 @@ namespace TTBot
             }
 
             await eventSignups.Delete(existingSignup);
-            await eventParticipantSets.UpdatePinnedMessageForEvent(channel, @event);
+            await eventParticipantSets.UpdatePinnedMessageForEvent(channel, @event, message);
             await reaction.User.Value.SendMessageAsync($"Thanks! You've been removed from {@event.Name}.");
 
         }
@@ -113,7 +113,7 @@ namespace TTBot
                 return;
 
             var @event = await events.GetEventByMessageIdAsync(cacheableMessage.Id);
-            if (@event == null)
+            if (@event == null || @event.Closed)
             {
                 return;
             }
@@ -146,7 +146,7 @@ namespace TTBot
             }
 
             await eventSignups.AddUserToEvent(@event, reaction.User.Value);
-            await eventParticipantSets.UpdatePinnedMessageForEvent(channel, @event);
+            await eventParticipantSets.UpdatePinnedMessageForEvent(channel, @event, message);
             await reaction.User.Value.SendMessageAsync($"Thanks! You've been signed up to {@event.Name}. If you can no longer attend just remove your reaction from the signup message!");
         }
 

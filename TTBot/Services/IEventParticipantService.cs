@@ -13,5 +13,6 @@ namespace TTBot.Services
         Task<string> GetParticipantsMessageBody(ISocketMessageChannel channel, EventsWithCount @event, List<EventSignup> signups, bool showJoinPrompt = true);
         Task UnpinEventMessage(ISocketMessageChannel channel, Event @event);
         Task UpdatePinnedMessageForEvent(ISocketMessageChannel channel, EventsWithCount @event);
+        Task UpdatePinnedMessageForEvent(ISocketMessageChannel channel, EventsWithCount @event, IUserMessage message);
     }
 }
