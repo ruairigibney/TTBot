@@ -61,6 +61,11 @@ namespace TTBot
 
         private async Task OnReactionRemove(Cacheable<IUserMessage, ulong> cacheableMessage, ISocketMessageChannel channel, SocketReaction reaction)
         {
+            if (reaction.UserId == _client.CurrentUser.Id)
+            {
+                return;
+            }
+
             var eventSignups = _serviceProvider.GetRequiredService<IEventSignups>();
             var events = _serviceProvider.GetRequiredService<IEvents>();
             var eventParticipantSets = _serviceProvider.GetRequiredService<IEventParticipantService>();
@@ -89,6 +94,10 @@ namespace TTBot
         }
         private async Task OnReactionAdd(Cacheable<IUserMessage, ulong> cacheableMessage, ISocketMessageChannel channel, SocketReaction reaction)
         {
+            if (reaction.UserId == _client.CurrentUser.Id)
+            {
+                return;
+            }
             var eventSignups = _serviceProvider.GetRequiredService<IEventSignups>();
             var events = _serviceProvider.GetRequiredService<IEvents>();
             var eventParticipantSets = _serviceProvider.GetRequiredService<IEventParticipantService>();
