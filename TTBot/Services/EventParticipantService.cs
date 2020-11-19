@@ -26,14 +26,15 @@ namespace TTBot.Services
         public async Task<IMessage> CreateAndPinParticipantMessage(ISocketMessageChannel channel, EventsWithCount @event)
         {
             var signups = await _eventSignups.GetAllSignupsForEvent(@event);
-            var message = await channel.SendMessageAsync(await GetParticipantsMessageBody(channel, @event, signups));
+            var embed = await GetParticipantsEmbed(channel, @event, signups);
+            var message = await channel.SendMessageAsync(embed: embed);
             await message.PinAsync();
             @event.MessageId = message.Id.ToString();
             await _events.SaveAsync(@event);
             return message;
         }
 
-        public async Task<string> GetParticipantsMessageBody(ISocketMessageChannel channel, EventsWithCount @event, List<EventSignup> signups)
+        public async Task<string> GetParticipantsMessageBody(ISocketMessageChannel channel, EventsWithCount @event, List<EventSignup> signups, bool showJoinPrompt = true)
         {
             var users = await Task.WhenAll(signups.Select(async sup => (await channel.GetUserAsync(Convert.ToUInt64(sup.UserId)) as SocketGuildUser)));
 
@@ -50,16 +51,55 @@ namespace TTBot.Services
 
             message += $" racers signed up for {@event.Name}.{Environment.NewLine}{ usersInEvent}{Environment.NewLine}{Environment.NewLine}";
 
-            if (!@event.Full)
+            if (showJoinPrompt)
             {
-                message += $"Sign up to this event with `!event join {@event.DisplayName}`";
-            }
-            else if (@event.SpaceLimited && @event.Full)
-            {
-                message += "This event is currently at capacity. Keep an eye out in case somebody unsigns.";
+                if (!@event.Full)
+                {
+                    message += $"React to this message to join the event!";
+                }
+                else if (@event.SpaceLimited && @event.Full)
+                {
+                    message += "This event is currently full. Keep an eye out in case somebody unsigns.";
+                }
             }
 
             return message;
+        }
+
+        public async Task<Embed> GetParticipantsEmbed(ISocketMessageChannel channel, EventsWithCount @event, List<EventSignup> signups, bool showJoinPrompt = true)
+        {
+
+            var users = await Task.WhenAll(signups.Select(async sup => (await channel.GetUserAsync(Convert.ToUInt64(sup.UserId)) as SocketGuildUser)));
+
+            var usersInEvent = string.Join('\n', users.Select(u => u.GetDisplayName()));
+            var message = "";
+            if (@event.SpaceLimited)
+            {
+                message += $"There's {users.Length} out of {@event.Capacity}";
+            }
+            else
+            {
+                message += $"There's {users.Length}";
+            }
+
+            message += $" racers signed up for {@event.Name}.\n\n{ usersInEvent}\n";      
+
+            var builder = new EmbedBuilder()
+            .WithTitle(@event.Name)
+            .WithDescription(message);
+
+            if (showJoinPrompt)
+            {
+                if (!@event.Full)
+                {
+                    builder.WithFooter(footer => footer.WithText("React to this message to join this event!"));
+                }
+                else if (@event.SpaceLimited && @event.Full)
+                {
+                    builder.WithFooter(footer => footer.WithText("This event is currently full. Keep an eye out in case somebody unsigns"));
+                }
+            }
+            return builder.Build();
         }
 
         public async Task UpdatePinnedMessageForEvent(ISocketMessageChannel channel, EventsWithCount @event)
@@ -70,8 +110,8 @@ namespace TTBot.Services
                 await CreateAndPinParticipantMessage(channel, @event);
                 return;
             }
-            var messageBody = await GetParticipantsMessageBody(channel, @event, await _eventSignups.GetAllSignupsForEvent(@event));
-            await ((IUserMessage)message).ModifyAsync(prop => prop.Content = messageBody);
+            var messageEmbed = await GetParticipantsEmbed(channel, @event, await _eventSignups.GetAllSignupsForEvent(@event));
+            await ((IUserMessage)message).ModifyAsync(prop => prop.Embed = messageEmbed);
         }
 
         public async Task UnpinEventMessage(ISocketMessageChannel channel, Event @event)

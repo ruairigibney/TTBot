@@ -9,7 +9,8 @@ namespace TTBot.Services
     public interface IEventParticipantService
     {
         Task<IMessage> CreateAndPinParticipantMessage(ISocketMessageChannel channel, EventsWithCount @event);
-        Task<string> GetParticipantsMessageBody(ISocketMessageChannel channel, EventsWithCount @event, List<EventSignup> signups);
+        Task<Embed> GetParticipantsEmbed(ISocketMessageChannel channel, EventsWithCount @event, List<EventSignup> signups, bool showJoinPrompt = true);
+        Task<string> GetParticipantsMessageBody(ISocketMessageChannel channel, EventsWithCount @event, List<EventSignup> signups, bool showJoinPrompt = true);
         Task UnpinEventMessage(ISocketMessageChannel channel, Event @event);
         Task UpdatePinnedMessageForEvent(ISocketMessageChannel channel, EventsWithCount @event);
     }

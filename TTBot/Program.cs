@@ -34,7 +34,7 @@ namespace TTBot
         public Program()
         {
             _commandService = new CommandService();
-            _client = new DiscordSocketClient(new DiscordSocketConfig { AlwaysDownloadUsers = true, MessageCacheSize = 1000, GatewayIntents = GatewayIntents.GuildMembers | GatewayIntents.GuildMessages | GatewayIntents.Guilds });
+            _client = new DiscordSocketClient(new DiscordSocketConfig { AlwaysDownloadUsers = true, MessageCacheSize = 1000, GatewayIntents = GatewayIntents.GuildMembers | GatewayIntents.GuildMessages | GatewayIntents.Guilds | GatewayIntents.GuildMessageReactions });
         }
 
         private async Task MainAsync(string[] args)
@@ -49,14 +49,88 @@ namespace TTBot
             await InitCommands();
 
             _client.MessageReceived += MessageReceived;
-            //   _client.ReactionAdded += OnReactionChange;
-            //   _client.ReactionRemoved += OnReactionChange;
+            _client.ReactionAdded += OnReactionAdd;
+            _client.ReactionRemoved += OnReactionRemove;
 
             _client.Log += Log;
 
             await _client.LoginAsync(TokenType.Bot, _configuration.GetValue<string>("Token"));
             await _client.StartAsync();
             await Task.Delay(-1);
+        }
+
+        private async Task OnReactionRemove(Cacheable<IUserMessage, ulong> cacheableMessage, ISocketMessageChannel channel, SocketReaction reaction)
+        {
+            var eventSignups = _serviceProvider.GetRequiredService<IEventSignups>();
+            var events = _serviceProvider.GetRequiredService<IEvents>();
+            var eventParticipantSets = _serviceProvider.GetRequiredService<IEventParticipantService>();
+            var message = await cacheableMessage.GetOrDownloadAsync();
+            if (!reaction.User.IsSpecified)
+                return;
+
+            if (message.Author.Id != _client.CurrentUser.Id)
+                return;
+
+            var @event = await events.GetEventByMessageIdAsync(cacheableMessage.Id);
+            if (@event == null)
+            {
+                return;
+            }
+
+            var existingSignup = await eventSignups.GetSignupAsync(@event, reaction.User.Value);
+            if (existingSignup == null)
+            {
+                return;
+            }
+
+            await eventSignups.Delete(existingSignup);
+            await eventParticipantSets.UpdatePinnedMessageForEvent(channel, @event);
+
+        }
+        private async Task OnReactionAdd(Cacheable<IUserMessage, ulong> cacheableMessage, ISocketMessageChannel channel, SocketReaction reaction)
+        {
+            var eventSignups = _serviceProvider.GetRequiredService<IEventSignups>();
+            var events = _serviceProvider.GetRequiredService<IEvents>();
+            var eventParticipantSets = _serviceProvider.GetRequiredService<IEventParticipantService>();
+            var message = await cacheableMessage.GetOrDownloadAsync();
+
+            async Task CancelSignup(string reason)
+            {
+                await message.RemoveReactionAsync(reaction.Emote, reaction.User.Value);
+                await channel.SendMessageAsync(reason);
+                return;
+            }
+
+            if (!reaction.User.IsSpecified)
+            {
+                return;
+            }
+
+            if (message.Author.Id != _client.CurrentUser.Id)
+                return;
+
+            var @event = await events.GetEventByMessageIdAsync(cacheableMessage.Id);
+            if (@event == null)
+            {
+                return;
+            }
+
+            var existingSignup = await eventSignups.GetSignupAsync(@event, reaction.User.Value);
+
+            if (existingSignup != null)
+            {
+                await CancelSignup($"You are already signed for this event {reaction.User.Value.Mention}");
+                return;
+            }
+
+            if (@event.SpaceLimited && @event.Full)
+            {
+                await CancelSignup($"Sorry, {reaction.User.Value.Mention} this event is currently full!");
+                return;
+            }
+
+            await eventSignups.AddUserToEvent(@event, reaction.User.Value);
+            await eventParticipantSets.UpdatePinnedMessageForEvent(channel, @event);
         }
 
         private async Task OnReactionChange(Cacheable<IUserMessage, ulong> cacheableMessage, ISocketMessageChannel channel, SocketReaction _)
