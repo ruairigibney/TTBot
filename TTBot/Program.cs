@@ -15,6 +15,7 @@ using Microsoft.Data.Sqlite;
 using ServiceStack.OrmLite;
 using TTBot.Models;
 using ServiceStack.Data;
+using System.Collections.Generic;
 
 namespace TTBot
 {
@@ -61,15 +62,11 @@ namespace TTBot
 
         private async Task OnReactionRemove(Cacheable<IUserMessage, ulong> cacheableMessage, ISocketMessageChannel channel, SocketReaction reaction)
         {
-            if (reaction.UserId == _client.CurrentUser.Id)
-            {
-                return;
-            }
-
             var eventSignups = _serviceProvider.GetRequiredService<IEventSignups>();
             var events = _serviceProvider.GetRequiredService<IEvents>();
             var eventParticipantSets = _serviceProvider.GetRequiredService<IEventParticipantService>();
             var message = await cacheableMessage.GetOrDownloadAsync();
+
             if (!reaction.User.IsSpecified)
                 return;
 
@@ -90,14 +87,11 @@ namespace TTBot
 
             await eventSignups.Delete(existingSignup);
             await eventParticipantSets.UpdatePinnedMessageForEvent(channel, @event);
+            await reaction.User.Value.SendMessageAsync($"Thanks! You've been removed from {@event.Name}.");
 
         }
         private async Task OnReactionAdd(Cacheable<IUserMessage, ulong> cacheableMessage, ISocketMessageChannel channel, SocketReaction reaction)
         {
-            if (reaction.UserId == _client.CurrentUser.Id)
-            {
-                return;
-            }
             var eventSignups = _serviceProvider.GetRequiredService<IEventSignups>();
             var events = _serviceProvider.GetRequiredService<IEvents>();
             var eventParticipantSets = _serviceProvider.GetRequiredService<IEventParticipantService>();
@@ -105,8 +99,8 @@ namespace TTBot
 
             async Task CancelSignup(string reason)
             {
+                await reaction.User.Value.SendMessageAsync(reason);
                 await message.RemoveReactionAsync(reaction.Emote, reaction.User.Value);
-                await channel.SendMessageAsync(reason);
                 return;
             }
 
@@ -128,7 +122,20 @@ namespace TTBot
 
             if (existingSignup != null)
             {
-                await CancelSignup($"You are already signed for this event {reaction.User.Value.Mention}");
+                var noOfReactionsForUser = 0;
+                foreach (var r in message.Reactions) //hack to handle events signed up to with command..
+                {
+                    var reactors = await message.GetReactionUsersAsync(r.Key, 999).FlattenAsync();
+                    if (reactors.Any(r => r.Id == reaction.UserId))
+                    {
+                        noOfReactionsForUser++;
+                    }
+                }
+                if (noOfReactionsForUser > 1)
+                {
+                    await CancelSignup($"You are already signed for this event {reaction.User.Value.Mention}");
+                }
+
                 return;
             }
 
@@ -140,6 +147,7 @@ namespace TTBot
 
             await eventSignups.AddUserToEvent(@event, reaction.User.Value);
             await eventParticipantSets.UpdatePinnedMessageForEvent(channel, @event);
+            await reaction.User.Value.SendMessageAsync($"Thanks! You've been signed up to {@event.Name}. If you can no longer attend just remove your reaction from the signup message!");
         }
 
         private async Task OnReactionChange(Cacheable<IUserMessage, ulong> cacheableMessage, ISocketMessageChannel channel, SocketReaction _)

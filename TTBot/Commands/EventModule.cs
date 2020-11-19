@@ -89,7 +89,7 @@ namespace TTBot.Commands
             existingEvent.Closed = true;
             await _events.SaveAsync(existingEvent);
 
-            await Context.Channel.SendMessageAsync($"{existingEvent.Name} is now closed!");     
+            await Context.Channel.SendMessageAsync($"{existingEvent.Name} is now closed!");
         }
 
         [Command("active")]
@@ -120,17 +120,17 @@ namespace TTBot.Commands
             }
             if (await _eventSignups.GetSignupAsync(existingEvent, Context.Message.Author) != null)
             {
-                await Context.Channel.SendMessageAsync($"You're already signed up to {eventName}");
+                await Context.Message.Author.SendMessageAsync($"You're already signed up to {eventName}");
                 return;
             }
 
             if (existingEvent.SpaceLimited && existingEvent.ParticipantCount >= existingEvent.Capacity)
             {
-                await Context.Channel.SendMessageAsync($"Sorry, but {eventName} is already full! Keep an eye out in-case someone pulls out.");
+                await Context.Message.Author.SendMessageAsync($"Sorry, but {eventName} is already full! Keep an eye out in-case someone pulls out.");
                 return;
             }
             await _eventSignups.AddUserToEvent(existingEvent, Context.Message.Author as SocketGuildUser);
-            await Context.Channel.SendMessageAsync($"Thanks {Context.Message.Author.Mention}! You've been signed up to {existingEvent.Name}. Check this channel's pinned messages to see a list of participants.");
+            await Context.Message.Author.SendMessageAsync($"Thanks {Context.Message.Author.Mention}! You've been signed up to {existingEvent.Name}. You can check the pinned messages in the event's channel to see the list of participants.");
             await UpdateConfirmationCheckForEvent(existingEvent);
             await _eventParticipantService.UpdatePinnedMessageForEvent(Context.Channel, existingEvent);
         }
