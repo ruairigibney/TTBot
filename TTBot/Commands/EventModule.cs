@@ -65,6 +65,7 @@ namespace TTBot.Commands
             await _events.SaveAsync(@event);
 
             await Context.Channel.SendMessageAsync($"{Context.Message.Author.Mention} has created the event {eventName}! Sign up to the event by typing `!event join {@event.DisplayName}` in this channel. If you've signed up and can no longer attend, use the command `!event unsign {@event.DisplayName}`");
+            existingEvent = await _events.GetActiveEvent(eventName, Context.Guild.Id, Context.Channel.Id);
             await _eventParticipantService.CreateAndPinParticipantMessage(Context.Channel, existingEvent);
         }
 
