@@ -41,7 +41,7 @@ namespace TTBot
         private async Task MainAsync(string[] args)
         {
             var services = new ServiceCollection();
-
+            Console.WriteLine("Token: " + _configuration.GetValue<string>("Token"));
             InitServices(services, args);
             CreateDataDirectory();
             InitDapperTypeHandlers();
@@ -86,7 +86,7 @@ namespace TTBot
             }
 
             var noOfReactionsForUser = 0;
-            foreach (var r in message.Reactions) 
+            foreach (var r in message.Reactions)
             {
                 var reactors = await message.GetReactionUsersAsync(r.Key, 999).FlattenAsync();
                 if (reactors.Any(r => r.Id == reaction.UserId))
@@ -230,7 +230,7 @@ namespace TTBot
         {
             var builder = new ConfigurationBuilder()
                 .SetBasePath(Directory.GetCurrentDirectory())
-                .AddJsonFile("appsettings.json")
+                .AddJsonFile("appsettings.json", true)
                 .AddEnvironmentVariables("TTBot_")
                 .AddCommandLine(args);
 
