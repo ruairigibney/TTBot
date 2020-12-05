@@ -1,5 +1,6 @@
 FROM mcr.microsoft.com/dotnet/sdk:3.1 as build
 WORKDIR /build/
+COPY ./nuget.config ./
 COPY ./TTBot.sln ./
 COPY ./TTBot/TTBot.csproj ./TTBot/
 RUN dotnet restore 
