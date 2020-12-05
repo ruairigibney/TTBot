@@ -4,8 +4,8 @@ COPY ./nuget.config ./
 COPY ./TTBot.sln ./
 COPY ./TTBot/TTBot.csproj ./TTBot/
 RUN dotnet restore 
-COPY ./* ./
-RUN dotnet build -c Release -o /publish/
+COPY ./ ./
+RUN dotnet publish -o /publish/
 
 FROM mcr.microsoft.com/dotnet/runtime:3.1 as runtime
 COPY --from=build /publish/ /app/
