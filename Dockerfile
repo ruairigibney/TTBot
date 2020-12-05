@@ -5,7 +5,7 @@ COPY ./TTBot.sln ./
 COPY ./TTBot/TTBot.csproj ./TTBot/
 RUN dotnet restore 
 COPY ./ ./
-RUN dotnet publish -p:PublishProfile=linux
+RUN dotnet publish -o /publish/
 
 FROM mcr.microsoft.com/dotnet/runtime:3.1 as runtime
 COPY --from=build /publish/ /app/
