@@ -239,6 +239,7 @@ namespace TTBot
             services.AddScoped<ILeaderboards, Leaderboards>();
             services.AddScoped<ILeaderboardEntries, LeaderboardEntries>();
             var conString = GetConnString();
+            Console.WriteLine("Con: " + conString);
             services.AddSingleton<IDbConnectionFactory>(new OrmLiteConnectionFactory(conString, SqliteDialect.Provider));
             services.AddScoped<IPermissionService, PermissionService>();
             services.AddScoped<IEvents, Events>();
