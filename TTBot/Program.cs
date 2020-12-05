@@ -41,7 +41,7 @@ namespace TTBot
         private async Task MainAsync(string[] args)
         {
             var services = new ServiceCollection();
-            Console.WriteLine("Token: " + _configuration.GetValue<string>("Token"));
+     
             InitServices(services, args);
             CreateDataDirectory();
             InitDapperTypeHandlers();
@@ -235,6 +235,9 @@ namespace TTBot
                 .AddCommandLine(args);
 
             services.AddSingleton<IConfiguration>(this._configuration = builder.Build());
+
+            Console.WriteLine("Token: " + _configuration.GetValue<string>("Token"));
+
             services.AddScoped<IModerator, Moderator>();
             services.AddScoped<ILeaderboards, Leaderboards>();
             services.AddScoped<ILeaderboardEntries, LeaderboardEntries>();
