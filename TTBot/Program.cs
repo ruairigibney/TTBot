@@ -15,6 +15,7 @@ using Microsoft.Data.Sqlite;
 using ServiceStack.OrmLite;
 using TTBot.Models;
 using ServiceStack.Data;
+using System.Collections.Generic;
 
 namespace TTBot
 {
@@ -34,7 +35,7 @@ namespace TTBot
         public Program()
         {
             _commandService = new CommandService();
-            _client = new DiscordSocketClient(new DiscordSocketConfig { AlwaysDownloadUsers = true, MessageCacheSize = 1000, GatewayIntents = GatewayIntents.GuildMembers | GatewayIntents.GuildMessages | GatewayIntents.Guilds });
+            _client = new DiscordSocketClient(new DiscordSocketConfig { AlwaysDownloadUsers = true, MessageCacheSize = 1000, GatewayIntents = GatewayIntents.GuildMembers | GatewayIntents.GuildMessages | GatewayIntents.Guilds | GatewayIntents.GuildMessageReactions });
         }
 
         private async Task MainAsync(string[] args)
@@ -49,14 +50,119 @@ namespace TTBot
             await InitCommands();
 
             _client.MessageReceived += MessageReceived;
-            //   _client.ReactionAdded += OnReactionChange;
-            //   _client.ReactionRemoved += OnReactionChange;
+            _client.ReactionAdded += OnReactionAdd;
+            _client.ReactionRemoved += OnReactionRemove;
 
             _client.Log += Log;
 
             await _client.LoginAsync(TokenType.Bot, _configuration.GetValue<string>("Token"));
             await _client.StartAsync();
             await Task.Delay(-1);
+        }
+
+        private async Task OnReactionRemove(Cacheable<IUserMessage, ulong> cacheableMessage, ISocketMessageChannel channel, SocketReaction reaction)
+        {
+            var eventSignups = _serviceProvider.GetRequiredService<IEventSignups>();
+            var events = _serviceProvider.GetRequiredService<IEvents>();
+            var eventParticipantSets = _serviceProvider.GetRequiredService<IEventParticipantService>();
+            var message = await cacheableMessage.GetOrDownloadAsync();
+
+            if (!reaction.User.IsSpecified)
+                return;
+
+            if (message.Author.Id != _client.CurrentUser.Id)
+                return;
+
+            var @event = await events.GetEventByMessageIdAsync(cacheableMessage.Id);
+            if (@event == null || @event.Closed)
+            {
+                return;
+            }
+
+            var existingSignup = await eventSignups.GetSignupAsync(@event, reaction.User.Value);
+            if (existingSignup == null)
+            {
+                return;
+            }
+
+            var noOfReactionsForUser = 0;
+            foreach (var r in message.Reactions) 
+            {
+                var reactors = await message.GetReactionUsersAsync(r.Key, 999).FlattenAsync();
+                if (reactors.Any(r => r.Id == reaction.UserId))
+                {
+                    noOfReactionsForUser++;
+                }
+            }
+            if (noOfReactionsForUser >= 1)
+            {
+                return;
+            }
+
+
+            await eventSignups.Delete(existingSignup);
+            await eventParticipantSets.UpdatePinnedMessageForEvent(channel, @event, message);
+            await reaction.User.Value.SendMessageAsync($"Thanks! You've been removed from {@event.Name}.");
+
+        }
+        private async Task OnReactionAdd(Cacheable<IUserMessage, ulong> cacheableMessage, ISocketMessageChannel channel, SocketReaction reaction)
+        {
+            var eventSignups = _serviceProvider.GetRequiredService<IEventSignups>();
+            var events = _serviceProvider.GetRequiredService<IEvents>();
+            var eventParticipantSets = _serviceProvider.GetRequiredService<IEventParticipantService>();
+            var message = await cacheableMessage.GetOrDownloadAsync();
+
+            async Task CancelSignup(string reason)
+            {
+                await reaction.User.Value.SendMessageAsync(reason);
+                await message.RemoveReactionAsync(reaction.Emote, reaction.User.Value);
+                return;
+            }
+
+            if (!reaction.User.IsSpecified)
+            {
+                return;
+            }
+
+            if (message.Author.Id != _client.CurrentUser.Id)
+                return;
+
+            var @event = await events.GetEventByMessageIdAsync(cacheableMessage.Id);
+            if (@event == null || @event.Closed)
+            {
+                return;
+            }
+
+            var existingSignup = await eventSignups.GetSignupAsync(@event, reaction.User.Value);
+
+            if (existingSignup != null)
+            {
+                var noOfReactionsForUser = 0;
+                foreach (var r in message.Reactions) //hack to handle events signed up to with command..
+                {
+                    var reactors = await message.GetReactionUsersAsync(r.Key, 999).FlattenAsync();
+                    if (reactors.Any(r => r.Id == reaction.UserId))
+                    {
+                        noOfReactionsForUser++;
+                    }
+                }
+                if (noOfReactionsForUser > 1)
+                {
+                    await CancelSignup($"You are already signed for this event {reaction.User.Value.Mention}");
+                }
+
+                return;
+            }
+
+            if (@event.SpaceLimited && @event.Full)
+            {
+                await CancelSignup($"Sorry, {reaction.User.Value.Mention} this event is currently full!");
+                return;
+            }
+
+            await eventSignups.AddUserToEvent(@event, reaction.User.Value);
+            await eventParticipantSets.UpdatePinnedMessageForEvent(channel, @event, message);
+            await reaction.User.Value.SendMessageAsync($"Thanks! You've been signed up to {@event.Name}. If you can no longer attend just remove your reaction from the signup message!");
         }
 
         private async Task OnReactionChange(Cacheable<IUserMessage, ulong> cacheableMessage, ISocketMessageChannel channel, SocketReaction _)

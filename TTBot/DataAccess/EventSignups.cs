@@ -1,4 +1,5 @@
-﻿using Discord.WebSocket;
+﻿using Discord;
+using Discord.WebSocket;
 using ServiceStack.Data;
 using ServiceStack.OrmLite;
 using System;
@@ -26,7 +27,7 @@ namespace TTBot.DataAccess
             }
         }
 
-        public async Task AddUserToEvent(Event @event, SocketUser user)
+        public async Task AddUserToEvent(Event @event, IUser user)
         {
             var signUp = new EventSignup()
             {
@@ -44,7 +45,7 @@ namespace TTBot.DataAccess
             }
         }
 
-        public async Task<EventSignup> GetSignUp(Event @event, SocketUser user)
+        public async Task<EventSignup> GetSignupAsync(Event @event, IUser user)
         {
             using (var con = _dbConnectionFactory.Open())
             {

@@ -49,5 +49,12 @@ namespace TTBot.DataAccess
                 return await con.SingleAsync<EventsWithCount>(e => e.Id == eventId && !e.Closed);
             }
         }
+        public async Task<EventsWithCount> GetEventByMessageIdAsync(ulong messageId)
+        {
+            using (var con = _conFactory.Open())
+            {
+                return await con.SingleAsync<EventsWithCount>(e => e.MessageId == messageId.ToString());
+            }
+        }
     }
 }

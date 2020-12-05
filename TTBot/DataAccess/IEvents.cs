@@ -10,5 +10,6 @@ namespace TTBot.DataAccess
         Task<EventsWithCount> GetActiveEvent(string name, ulong guildId, ulong channelId);
         Task SaveAsync(Event @event);
         Task<EventsWithCount> GetActiveEvent(int eventId);
+        Task<EventsWithCount> GetEventByMessageIdAsync(ulong messageId);
     }
 }
