@@ -1,0 +1,19 @@
+apiVersion : apps/v1
+kind: Deployment
+metadata:
+  name: "ttbotkube-4618"
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: "ttbotkube-4618"
+  template:
+    metadata:
+      labels:
+        app: "ttbotkube-4618"
+    spec:
+      containers:
+        - name: "ttbotkube-4618"
+          image: "ttbotcontainerregistry.azurecr.io/ttbotkube"
+          ports:
+          - containerPort: 80
