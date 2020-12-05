@@ -85,6 +85,21 @@ namespace TTBot
                 return;
             }
 
+            var noOfReactionsForUser = 0;
+            foreach (var r in message.Reactions) 
+            {
+                var reactors = await message.GetReactionUsersAsync(r.Key, 999).FlattenAsync();
+                if (reactors.Any(r => r.Id == reaction.UserId))
+                {
+                    noOfReactionsForUser++;
+                }
+            }
+            if (noOfReactionsForUser >= 1)
+            {
+                return;
+            }
+
+
             await eventSignups.Delete(existingSignup);
             await eventParticipantSets.UpdatePinnedMessageForEvent(channel, @event, message);
             await reaction.User.Value.SendMessageAsync($"Thanks! You've been removed from {@event.Name}.");

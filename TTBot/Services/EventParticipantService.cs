@@ -105,7 +105,7 @@ namespace TTBot.Services
         public async Task UpdatePinnedMessageForEvent(ISocketMessageChannel channel, EventsWithCount @event, IUserMessage message)
         {
             var messageEmbed = await GetParticipantsEmbed(channel, @event, await _eventSignups.GetAllSignupsForEvent(@event));
-            await (message).ModifyAsync(prop => prop.Embed = messageEmbed);
+            await (message).ModifyAsync(prop => { prop.Embed = messageEmbed; prop.Content = null; });
         }
 
         public async Task UpdatePinnedMessageForEvent(ISocketMessageChannel channel, EventsWithCount @event)
