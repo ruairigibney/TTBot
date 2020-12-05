@@ -43,7 +43,7 @@ namespace TTBot
             var services = new ServiceCollection();
 
             InitServices(services, args);
-            CreateDataDirectory();
+            ValidateDatabase();
             InitDapperTypeHandlers();
             _serviceProvider = services.BuildServiceProvider();
             ScaffoldDatabase();
@@ -55,6 +55,12 @@ namespace TTBot
 
             _client.Log += Log;
 
+            var dbConFactory = _serviceProvider.GetRequiredService<IDbConnectionFactory>();
+            using (var connection = dbConFactory.Open())
+            {
+                var events = await connection.SelectAsync<Event>();
+                Console.WriteLine("Events " + events.Count);
+            }
             await _client.LoginAsync(TokenType.Bot, _configuration.GetValue<string>("Token"));
             await _client.StartAsync();
             await Task.Delay(-1);
@@ -86,7 +92,7 @@ namespace TTBot
             }
 
             var noOfReactionsForUser = 0;
-            foreach (var r in message.Reactions) 
+            foreach (var r in message.Reactions)
             {
                 var reactors = await message.GetReactionUsersAsync(r.Key, 999).FlattenAsync();
                 if (reactors.Any(r => r.Id == reaction.UserId))
@@ -189,13 +195,15 @@ namespace TTBot
 
         }
 
-        private void CreateDataDirectory()
+        private void ValidateDatabase()
         {
-            var path = GetDataDirectory();
-            if (!Directory.Exists(path))
+            var path = GetConnString();
+            Console.Write("Validating database " + path);
+            if (!File.Exists(path))
             {
-                Directory.CreateDirectory(path);
+                throw new Exception("Databasefile not found " + path);
             }
+            Console.Write("Database found");
         }
 
         private string GetConnString() => $"{Path.Combine(GetDataDirectory(), "database.sqlite")}";
