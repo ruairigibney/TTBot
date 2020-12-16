@@ -1,5 +1,6 @@
 ﻿using Discord;
 using Discord.Commands;
+using Discord.Rest;
 using Discord.WebSocket;
 using System;
 using System.Collections.Generic;
@@ -53,10 +54,26 @@ namespace TTBot.Commands
                 await Context.Channel.SendMessageAsync("There is already an active event with that name or short name for this channel. Event names must be unique!");
                 return;
             }
+
+            string roleId = "";
+            try
+            {
+                /* Create a new role for this event. The role is not visible in the sidebar and can be menitoned.
+                 * It is possible that the shortName is already used for a role, but that's not forbidden by Discord.
+                 * It might be a consideration for the future to check for duplicates and assign a unique name.
+                 */
+
+                var role = await author.Guild.CreateRoleAsync(shortName + " notify", null, null, false, true);
+                roleId = role.Id.ToString();
+            }
+            catch (Discord.Net.HttpException) { /* ignore forbidden exception */ }
+            
+
             var @event = new Models.Event
             {
                 ChannelId = Context.Channel.Id.ToString(),
                 GuildId = Context.Guild.Id.ToString(),
+                RoleId = roleId,
                 ShortName = shortName,
                 Closed = false,
                 Name = eventName,
@@ -85,6 +102,20 @@ namespace TTBot.Commands
                 await Context.Channel.SendMessageAsync($"Unable to find an active event with the name {eventName}");
                 return;
             }
+
+            var role = Context.Guild.Roles.FirstOrDefault(x => x.Id.ToString() == existingEvent.RoleId);
+
+            /* the event could have already been deleted by a mod, null-check required */
+
+            if (role != null)
+            {
+                try
+                {
+                    await role.DeleteAsync(); 
+                }
+                catch (Discord.Net.HttpException) { /* ignore forbidden exception */ }
+            }
+
             await _eventParticipantService.UnpinEventMessage(Context.Channel, existingEvent);
             existingEvent.Closed = true;
             await _events.SaveAsync(existingEvent);
@@ -129,6 +160,20 @@ namespace TTBot.Commands
                 await Context.Message.Author.SendMessageAsync($"Sorry, but {eventName} is already full! Keep an eye out in-case someone pulls out.");
                 return;
             }
+
+            if (Context.Message.Author is IGuildUser guildUser)
+            {
+                var role = guildUser.Guild.Roles.FirstOrDefault(x => x.Id.ToString() == existingEvent.RoleId);
+                if (role != null)
+                {
+                    try
+                    {
+                        await guildUser.AddRoleAsync(role);
+                    }
+                    catch (Discord.Net.HttpException) { /* ignore forbidden exception */ }
+                }
+            }
+
             await _eventSignups.AddUserToEvent(existingEvent, Context.Message.Author as SocketGuildUser);
             await Context.Message.Author.SendMessageAsync($"Thanks {Context.Message.Author.Mention}! You've been signed up to {existingEvent.Name}. You can check the pinned messages in the event's channel to see the list of participants.");
             await UpdateConfirmationCheckForEvent(existingEvent);
@@ -151,6 +196,22 @@ namespace TTBot.Commands
                 await Context.Channel.SendMessageAsync($"You're not currently signed up to {eventName}");
                 return;
             }
+
+
+            if(Context.Message.Author is IGuildUser guildUser)
+            {
+                var role = guildUser.Guild.Roles.FirstOrDefault(x => x.Id.ToString() == existingEvent.RoleId);
+                if (role != null)
+                {
+                    /* no effect if user doesn' have the role anymore */
+                    try
+                    {
+                        await guildUser.RemoveRoleAsync(role);
+                    }
+                    catch (Discord.Net.HttpException) { /* ignore forbidden exception */ }
+                }
+            }
+
             await _eventSignups.Delete(existingSignup);
             await Context.Channel.SendMessageAsync($"Thanks { Context.Message.Author.Mention}! You're no longer signed up to {existingEvent.Name}.");
             await UpdateConfirmationCheckForEvent(existingEvent);
