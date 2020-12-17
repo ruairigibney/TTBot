@@ -197,7 +197,6 @@ namespace TTBot.Commands
                 return;
             }
 
-
             if(Context.Message.Author is IGuildUser guildUser)
             {
                 var role = guildUser.Guild.Roles.FirstOrDefault(x => x.Id.ToString() == existingEvent.RoleId);
@@ -212,7 +211,7 @@ namespace TTBot.Commands
                 }
             }
 
-            await _eventSignups.Delete(existingSignup);
+            await _eventSignups.DeleteAsync(existingSignup);
             await Context.Channel.SendMessageAsync($"Thanks { Context.Message.Author.Mention}! You're no longer signed up to {existingEvent.Name}.");
             await UpdateConfirmationCheckForEvent(existingEvent);
             await _eventParticipantService.UpdatePinnedMessageForEvent(Context.Channel, existingEvent);
@@ -272,7 +271,7 @@ namespace TTBot.Commands
                 var existingSignup = await _eventSignups.GetSignupAsync(existingEvent, user);
                 if (existingSignup != null)
                 {
-                    await _eventSignups.Delete(existingSignup);
+                    await _eventSignups.DeleteAsync(existingSignup);
                 }
             }
 

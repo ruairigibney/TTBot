@@ -37,7 +37,7 @@ namespace TTBot.DataAccess
             await SaveAsync(signUp);
         }
 
-        public async Task Delete(EventSignup signup)
+        public async Task DeleteAsync(EventSignup signup)
         {
             using (var con = _dbConnectionFactory.Open())
             {

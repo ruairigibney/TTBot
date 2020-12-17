@@ -11,7 +11,7 @@ namespace TTBot.DataAccess
         Task AddUserToEvent(Event @event, IUser user);
         Task<List<EventSignup>> GetAllSignupsForEvent(Event @event);
         Task<EventSignup> GetSignupAsync(Event @event, IUser user);
-        Task Delete(EventSignup signup);
+        Task DeleteAsync(EventSignup signup);
         Task SaveAsync(EventSignup eventSignUp);
     }
 }

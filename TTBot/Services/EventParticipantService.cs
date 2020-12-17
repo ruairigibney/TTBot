@@ -69,17 +69,28 @@ namespace TTBot.Services
         public async Task<Embed> GetParticipantsEmbed(ISocketMessageChannel channel, EventsWithCount @event, List<EventSignup> signups, bool showJoinPrompt = true)
         {
 
-            var users = await Task.WhenAll(signups.Select(async sup => (await channel.GetUserAsync(Convert.ToUInt64(sup.UserId)) as SocketGuildUser)));
+            var users = new List<SocketGuildUser>();
+            foreach (var signup in signups)
+            {
+                var user = await channel.GetUserAsync(Convert.ToUInt64(signup.UserId)) as SocketGuildUser;
+                if (user == null)
+                {
+                    //handle user that left the guild
+                    await _eventSignups.DeleteAsync(signup);
+
+                }
+                users.Add(user);
+            }
 
             var usersInEvent = string.Join('\n', users.Select(u => u.GetDisplayName()));
             var message = "";
             if (@event.SpaceLimited)
             {
-                message += $"There's {users.Length} out of {@event.Capacity}";
+                message += $"There's {users.Count} out of {@event.Capacity}";
             }
             else
             {
-                message += $"There's {users.Length}";
+                message += $"There's {users.Count}";
             }
 
             message += $" racers signed up for {@event.Name}.\n\n{ usersInEvent}\n";

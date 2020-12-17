@@ -113,9 +113,10 @@ namespace TTBot
                     catch (Discord.Net.HttpException) { /* ignore forbidden exception */ }
                     
                 }
-            }
+            }        
 
-            await eventSignups.Delete(existingSignup);
+            await eventSignups.DeleteAsync(existingSignup);
+
             await eventParticipantSets.UpdatePinnedMessageForEvent(channel, @event, message);
             await reaction.User.Value.SendMessageAsync($"Thanks! You've been removed from {@event.Name}.");
 
