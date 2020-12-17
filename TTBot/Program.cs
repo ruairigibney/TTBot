@@ -100,6 +100,21 @@ namespace TTBot
             }
 
 
+            if (reaction.User.Value is IGuildUser guildUser)
+            {
+                var role = guildUser.Guild.Roles.FirstOrDefault(x => x.Id.ToString() == @event.RoleId);
+                if (role != null)
+                {
+                    /* no effect if user doesn' have the role anymore */
+                    try
+                    {
+                        await guildUser.RemoveRoleAsync(role);
+                    }
+                    catch (Discord.Net.HttpException) { /* ignore forbidden exception */ }
+                    
+                }
+            }
+
             await eventSignups.Delete(existingSignup);
             await eventParticipantSets.UpdatePinnedMessageForEvent(channel, @event, message);
             await reaction.User.Value.SendMessageAsync($"Thanks! You've been removed from {@event.Name}.");
@@ -158,6 +173,21 @@ namespace TTBot
             {
                 await CancelSignup($"Sorry, {reaction.User.Value.Mention} this event is currently full!");
                 return;
+            }
+
+
+            if(reaction.User.Value is IGuildUser guildUser)
+            {
+                var role = guildUser.Guild.Roles.FirstOrDefault(x => x.Id.ToString() == @event.RoleId);
+                if (role != null)
+                {
+                    try
+                    {
+                        await guildUser.AddRoleAsync(role);
+                    }
+                    catch (Discord.Net.HttpException) { /* ignore forbidden exception */ }
+                        
+                }
             }
 
             await eventSignups.AddUserToEvent(@event, reaction.User.Value);
