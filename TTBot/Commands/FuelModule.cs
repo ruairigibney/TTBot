@@ -22,17 +22,17 @@ namespace TTBot.Commands
     {
         struct RaceFuel
         {
-            public int race_time_s;
-            public int lap_time_ms;
-            public double fuel_usage_l;
+            public int raceTimeS;
+            public int lapTimeMs;
+            public double fuelUsageL;
 
-            public int reserve_laps;
+            public int reserveLaps;
 
-            public int race_laps;
-            public double fuel_per_minute;
+            public int raceLaps;
+            public double fuelPerMinute;
 
             public double fuel;
-            public double fuel_save;
+            public double fuelSave;
 
 
 
@@ -59,14 +59,14 @@ namespace TTBot.Commands
                 builder.AddField(x =>
                 {
                     x.Name = "Racetime";
-                    x.Value = TimeSpan.FromSeconds(data.race_time_s).ToString(@"hh\:mm");
+                    x.Value = TimeSpan.FromSeconds(data.raceTimeS).ToString(@"hh\:mm");
                     x.IsInline = true;
                 });
 
                 builder.AddField(x =>
                 {
                     x.Name = "Laptime";
-                    x.Value = TimeSpan.FromMilliseconds(data.lap_time_ms).ToString(@"mm\:ss\.fff");
+                    x.Value = TimeSpan.FromMilliseconds(data.lapTimeMs).ToString(@"mm\:ss\.fff");
                     x.IsInline = true;
                 });
 
@@ -74,21 +74,21 @@ namespace TTBot.Commands
                 builder.AddField(x =>
                 {
                     x.Name = "Fuel per Lap";
-                    x.Value = data.fuel_usage_l;
+                    x.Value = data.fuelUsageL;
                     x.IsInline = true;
                 });
 
                 builder.AddField(x =>
                 {
                     x.Name = "Racelaps";
-                    x.Value = data.race_laps;
+                    x.Value = data.raceLaps;
                     x.IsInline = true;
                 });
 
                 builder.AddField(x =>
                 {
                     x.Name = "Fuel per Minute (est.)";
-                    x.Value = data.fuel_per_minute.ToString("0.00");
+                    x.Value = data.fuelPerMinute.ToString("0.00");
                     x.IsInline = true;
                 });
 
@@ -100,11 +100,11 @@ namespace TTBot.Commands
                 });
 
 
-                double reserve_laps_perc = data.reserve_laps / (double)data.race_laps * 100;
+                double reserve_laps_perc = data.reserveLaps / (double)data.raceLaps * 100;
                 builder.AddField(x =>
                 {
-                    x.Name = $"Fuel (+{data.reserve_laps} laps / +{(int)reserve_laps_perc}%)";
-                    x.Value = data.fuel_save.ToString("0.00");
+                    x.Name = $"Fuel (+{data.reserveLaps} laps / +{(int)reserve_laps_perc}%)";
+                    x.Value = data.fuelSave.ToString("0.00");
                     x.IsInline = false;
                 });
 
@@ -158,7 +158,7 @@ namespace TTBot.Commands
         /// </summary>
         /// <param name="timestamp"></param>
         /// <returns>0 TimeSpan on failure</returns>
-        private TimeSpan parse_racelen(string timestamp)
+        private TimeSpan ParseRaceLen(string timestamp)
         {
             TimeSpan ts;
 
@@ -200,7 +200,7 @@ namespace TTBot.Commands
         /// </summary>
         /// <param name="timestamp"></param>
         /// <returns>0 TimeSpan on failure</returns>
-        private TimeSpan parse_laptime(string timestamp)
+        private TimeSpan ParseLaptime(string timestamp)
         {
             TimeSpan ts;
 
@@ -251,13 +251,13 @@ namespace TTBot.Commands
 
 
 
-        private RaceFuel get_fuel_usage(RaceFuel data)
+        private RaceFuel GetFuelUsage(RaceFuel data)
         {
 
-            data.fuel_per_minute = data.fuel_usage_l * 1000 / data.lap_time_ms * 60;
+            data.fuelPerMinute = data.fuelUsageL * 1000 / data.lapTimeMs * 60;
 
-            data.fuel = data.race_laps * data.fuel_usage_l;
-            data.fuel_save = data.fuel + (data.reserve_laps * data.fuel_usage_l);
+            data.fuel = data.raceLaps * data.fuelUsageL;
+            data.fuelSave = data.fuel + (data.reserveLaps * data.fuelUsageL);
 
             return data;
         }
@@ -272,21 +272,21 @@ namespace TTBot.Commands
 
             RaceFuel data = new RaceFuel
             {
-                race_time_s = (int)parse_racelen(race_len).TotalSeconds,
-                lap_time_ms = (int)parse_laptime(lap_time).TotalMilliseconds,
-                fuel_usage_l = double.Parse(fuel_usage, CultureInfo.InvariantCulture),
-                reserve_laps = reserve_laps
+                raceTimeS = (int)ParseRaceLen(race_len).TotalSeconds,
+                lapTimeMs = (int)ParseLaptime(lap_time).TotalMilliseconds,
+                fuelUsageL = double.Parse(fuel_usage, CultureInfo.InvariantCulture),
+                reserveLaps = reserve_laps
             };
 
 
             /* calculating race laps here, as called function is generic and requires this value */
 
-            double race_laps_d = data.race_time_s * 1000 / (double)data.lap_time_ms;
-            data.race_laps = (int)Math.Ceiling(race_laps_d);
+            double race_laps_d = data.raceTimeS * 1000 / (double)data.lapTimeMs;
+            data.raceLaps = (int)Math.Ceiling(race_laps_d);
 
 
 
-            data = get_fuel_usage(data);
+            data = GetFuelUsage(data);
             await Context.Channel.SendMessageAsync(embed: data.toEmbed(Context.Client.CurrentUser, Context.User));
             
         }
@@ -298,19 +298,19 @@ namespace TTBot.Commands
         {
             RaceFuel data = new RaceFuel
             {
-                race_laps = race_laps,
-                lap_time_ms = (int)parse_laptime(lap_time).TotalMilliseconds,
-                fuel_usage_l = double.Parse(fuel_usage, CultureInfo.InvariantCulture),
-                reserve_laps = reserve_laps
+                raceLaps = race_laps,
+                lapTimeMs = (int)ParseLaptime(lap_time).TotalMilliseconds,
+                fuelUsageL = double.Parse(fuel_usage, CultureInfo.InvariantCulture),
+                reserveLaps = reserve_laps
             };
 
 
             /* calculating race time here, as called function is generic and requires this value */
 
-            data.race_time_s = data.race_laps * data.lap_time_ms / 1000;
+            data.raceTimeS = data.raceLaps * data.lapTimeMs / 1000;
 
 
-            data = get_fuel_usage(data);
+            data = GetFuelUsage(data);
             await Context.Channel.SendMessageAsync(embed: data.toEmbed(Context.Client.CurrentUser, Context.User));
         }
 
