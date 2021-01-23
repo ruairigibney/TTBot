@@ -4,7 +4,7 @@ using System.Text;
 
 namespace TTBot.Models
 {
-    public class ExcelDataModel
+    public class ExcelDriverDataModel
     {
         public string Championship { get; set; }
         public string Driver { get; set; }

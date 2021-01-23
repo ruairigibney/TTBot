@@ -11,6 +11,6 @@ namespace TTBot.DataAccess
         Task SaveAsync(Event @event);
         Task<EventsWithCount> GetActiveEvent(int eventId);
         Task<EventsWithCount> GetEventByMessageIdAsync(ulong messageId);
-        Task<EventsWithCount> GetEventByShortname(string shortname);
+        Task<EventsWithCount> GetEventByShortname(ulong guildId, string shortname);
     }
 }

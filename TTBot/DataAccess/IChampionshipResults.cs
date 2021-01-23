@@ -10,7 +10,7 @@ namespace TTBot.DataAccess
     {
         Task AddAsync(List<ChampionshipResultsModel> championshipResults);
         Task<List<ChampionshipResultsModel>> GetChampionshipResultsByIdAsync(int championshipId);
-        Task DeleteAllAsync<ChampionshipResultsModel>();
+        Task DeleteAllGuildEvents<ChampionshipResultsModel>(string guildId);
         Task<string[]> GetEventsWithResultsAsync();
     }
 }

@@ -37,11 +37,14 @@ namespace TTBot.DataAccess
             }
         }
 
-        public async Task DeleteAllAsync<ChampionshipResulstModel>()
+        public async Task DeleteAllGuildEvents<ChampionshipResulstModel>(string guildId)
         {
-            using (var connection = _conFactory.Open())
-            {
-                await connection.DeleteAllAsync<ChampionshipResultsModel>();
+            using (var connection = _conFactory.Open()) {
+                var q = connection.From<ChampionshipResultsModel>()
+                       .Join<Event>()
+                       .Where<Event>(x => x.GuildId == guildId);
+
+                await connection.DeleteAsync<ChampionshipResultsModel>(q);
             }
         }
 

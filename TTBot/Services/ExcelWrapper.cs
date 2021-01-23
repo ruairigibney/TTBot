@@ -16,14 +16,13 @@ namespace TTBot.Services
             ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
         }
 
-        public List<ExcelDataModel> GetExcelData(Attachment attachment)
+        public List<ExcelDriverDataModel> GetExcelDriverData(Attachment attachment)
         {
-            List<ExcelDataModel> excelDataModels = new List<ExcelDataModel>();
+            List<ExcelDriverDataModel> excelDriverDataModels = new List<ExcelDriverDataModel>();
 
             WebClient webClient = new WebClient();
             byte[] buffer = webClient.DownloadData(attachment.Url);
-            MemoryStream stream = new MemoryStream(buffer);
-
+            using MemoryStream stream = new MemoryStream(buffer);
             using (var package = new ExcelPackage(stream))
             {
                 foreach (ExcelWorksheet worksheet in package.Workbook.Worksheets)
@@ -39,24 +38,25 @@ namespace TTBot.Services
                     for (int i = 0; i < rowCount; i++)
                     {
                         var row = i + 1;
-                        ExcelDataModel excelDataModel = new ExcelDataModel();
-                        excelDataModel.Championship = worksheet.Name;
-                        excelDataModel.Driver = worksheet.Cells[row, 1].Text;
-
-                        excelDataModel.Positions = new String[colCount - 1];
+                        ExcelDriverDataModel excelDriverDataModel = new ExcelDriverDataModel()
+                        {
+                            Championship = worksheet.Name,
+                            Driver = worksheet.Cells[row, 1].Text,
+                            Positions = new string[colCount - 1]
+                        };
 
                         for (int ii = 0; ii < colCount - 1; ii++)
                         {
                             var col = ii + 2;
-                            excelDataModel.Positions[ii] = worksheet.Cells[row, col].Text;
+                            excelDriverDataModel.Positions[ii] = worksheet.Cells[row, col].Text;
                         }
 
-                        excelDataModels.Add(excelDataModel);
+                        excelDriverDataModels.Add(excelDriverDataModel);
                     }
                 }
             }
 
-            return excelDataModels;
+            return excelDriverDataModels;
         }
     }
 }

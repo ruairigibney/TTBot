@@ -9,6 +9,6 @@ namespace TTBot.Services
 {
     public interface IExcelService
     {
-        Task<List<ExcelDataModel>> ReadResultsDataFromAttachment(Attachment attachment);
+        Task<List<ExcelDriverDataModel>> ReadResultsDataFromAttachment(Attachment attachment);
     }
 }

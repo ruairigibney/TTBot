@@ -53,38 +53,45 @@ namespace TTBot.Commands
                     return;
                 }
 
+                var guildId = Context.Guild.Id;
+
                 // clear out our results DB table first
-                await _results.DeleteAllAsync<ChampionshipResultsModel>();
+                await _results.DeleteAllGuildEvents<ChampionshipResultsModel>(guildId.ToString());
 
                 var attachment = Context.Message.Attachments.First();
-                var excelData = await _excelService.ReadResultsDataFromAttachment(attachment);
+                var excelDriverDataModels = await _excelService.ReadResultsDataFromAttachment(attachment);
 
                 List<ChampionshipResultsModel> championshipResults = new List<ChampionshipResultsModel>();
 
-                foreach (ExcelDataModel excelDataModel in excelData)
+                foreach (ExcelDriverDataModel excelDriverDataModel in excelDriverDataModels)
                 {
-                    var e = await _events.GetEventByShortname(excelDataModel.Championship);
+                    var e = await _events.GetEventByShortname(guildId, excelDriverDataModel.Championship);
 
                     if (e == null || e.Id == 0)
                     {
-                        if (!listOfUnknownChampionships.Contains(excelDataModel.Championship))
+                        if (!listOfUnknownChampionships.Contains(excelDriverDataModel.Championship))
                         {
-                            listOfUnknownChampionships.Add(excelDataModel.Championship);
+                            listOfUnknownChampionships.Add(excelDriverDataModel.Championship);
                         }
                         continue;
                     } else
                     {
-                        if (!listOfSuccessfulyUploadedChampionships.Contains(excelDataModel.Championship))
+                        if (!listOfSuccessfulyUploadedChampionships.Contains(excelDriverDataModel.Championship))
                         {
-                            listOfSuccessfulyUploadedChampionships.Add(excelDataModel.Championship);
+                            listOfSuccessfulyUploadedChampionships.Add(excelDriverDataModel.Championship);
                         }
                     }
 
                     var eventId = e.Id;
                     var points = 0;
 
-                    foreach (String position in excelDataModel.Positions)
+                    foreach (String position in excelDriverDataModel.Positions)
                     {
+                        if (string.IsNullOrWhiteSpace(position))
+                        {
+                            continue;
+                        }
+
                         int p;
                         if (position.Contains("*"))
                         {
@@ -102,8 +109,8 @@ namespace TTBot.Commands
                     ChampionshipResultsModel championshipResult = new ChampionshipResultsModel()
                     {
                         EventId = eventId,
-                        Driver = excelDataModel.Driver,
-                        Positions = excelDataModel.Positions,
+                        Driver = excelDriverDataModel.Driver,
+                        Positions = excelDriverDataModel.Positions,
                         Points = points
                     };
 
@@ -111,7 +118,7 @@ namespace TTBot.Commands
 
                 }
 
-                _results.AddAsync(championshipResults);
+                await _results.AddAsync(championshipResults);
 
 
             } catch (Exception ex)
@@ -121,12 +128,12 @@ namespace TTBot.Commands
 
             if (listOfSuccessfulyUploadedChampionships.Count > 0)
             {
-                sb.AppendLine($"Data has been imported for the following championships: {string.Join(",", listOfSuccessfulyUploadedChampionships)}");
+                sb.AppendLine($"Data has been imported for the following championships: {string.Join(", ", listOfSuccessfulyUploadedChampionships)}");
             }
 
             if (listOfUnknownChampionships.Count > 0)
             {
-                sb.AppendLine($"The following championship shortnames were not found in events: {string.Join(",", listOfUnknownChampionships)}");
+                sb.AppendLine($"The following championship shortnames were not found in events: {string.Join(", ", listOfUnknownChampionships)}");
             }
 
             await ReplyAsync(sb.ToString());
@@ -168,12 +175,20 @@ namespace TTBot.Commands
         public async Task GetStandings(string args = null)
         {
             var championship = args;
+            var guildId = Context.Guild.Id;
 
             var sb = new StringBuilder();
 
+            if (args == null)
+            {
+                sb.AppendLine("No championship provided");
+                await ReplyAsync(sb.ToString());
+                return;
+            }
+
             try
             {
-                var e = await _events.GetEventByShortname(championship);
+                var e = await _events.GetEventByShortname(guildId, championship);
                 if (e == null || e.Id == 0)
                 {
                     sb.AppendLine("Championship not found");

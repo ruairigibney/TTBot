@@ -57,11 +57,11 @@ namespace TTBot.DataAccess
             }
         }
 
-        public async Task<EventsWithCount> GetEventByShortname(string shortname)
+        public async Task<EventsWithCount> GetEventByShortname(ulong guildId, string shortname)
         {
             using (var con = await _conFactory.OpenAsync())
             {
-                return (await con.SelectAsync<EventsWithCount>(ev => (ev.ShortName.ToLower() == shortname.ToLower()))).SingleOrDefault();
+                return (await con.SelectAsync<EventsWithCount>(ev => (ev.ShortName.ToLower() == shortname.ToLower() && ev.GuildId == guildId.ToString()))).SingleOrDefault();
             }
         }
     }
