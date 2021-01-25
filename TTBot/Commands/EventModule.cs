@@ -161,6 +161,9 @@ namespace TTBot.Commands
                 return;
             }
 
+
+            string nickName = Context.Message.Author.Username;
+
             if (Context.Message.Author is IGuildUser guildUser)
             {
                 var role = guildUser.Guild.Roles.FirstOrDefault(x => x.Id.ToString() == existingEvent.RoleId);
@@ -172,9 +175,13 @@ namespace TTBot.Commands
                     }
                     catch (Discord.Net.HttpException) { /* ignore forbidden exception */ }
                 }
+
+                nickName = string.IsNullOrEmpty(guildUser.Nickname) ? nickName : guildUser.Nickname;
             }
 
+
             await _eventSignups.AddUserToEvent(existingEvent, Context.Message.Author as SocketGuildUser);
+            await Context.Guild.Owner.SendMessageAsync($"{nickName} signed up to {existingEvent.Name}");
             await Context.Message.Author.SendMessageAsync($"Thanks {Context.Message.Author.Mention}! You've been signed up to {existingEvent.Name}. You can check the pinned messages in the event's channel to see the list of participants.");
             await UpdateConfirmationCheckForEvent(existingEvent);
             await _eventParticipantService.UpdatePinnedMessageForEvent(Context.Channel, existingEvent);
@@ -197,7 +204,10 @@ namespace TTBot.Commands
                 return;
             }
 
-            if(Context.Message.Author is IGuildUser guildUser)
+
+            string nickName = Context.Message.Author.Username;
+
+            if (Context.Message.Author is IGuildUser guildUser)
             {
                 var role = guildUser.Guild.Roles.FirstOrDefault(x => x.Id.ToString() == existingEvent.RoleId);
                 if (role != null)
@@ -209,9 +219,12 @@ namespace TTBot.Commands
                     }
                     catch (Discord.Net.HttpException) { /* ignore forbidden exception */ }
                 }
+
+                nickName = string.IsNullOrEmpty(guildUser.Nickname) ? nickName : guildUser.Nickname;
             }
 
             await _eventSignups.DeleteAsync(existingSignup);
+            await Context.Guild.Owner.SendMessageAsync($"{nickName} signed out of {existingEvent.Name}");
             await Context.Channel.SendMessageAsync($"Thanks { Context.Message.Author.Mention}! You're no longer signed up to {existingEvent.Name}.");
             await UpdateConfirmationCheckForEvent(existingEvent);
             await _eventParticipantService.UpdatePinnedMessageForEvent(Context.Channel, existingEvent);
