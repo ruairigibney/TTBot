@@ -179,7 +179,6 @@ namespace TTBot.Commands
                     var results = await _results.GetChampionshipResultsByIdAsync(eventId);
                     var orderedResults = results.OrderBy(r => r.Pos);
 
-                    sb.AppendLine("```");
                     var resultsTable = orderedResults.ToStringTable(
                         new[] { "Pos", "Driver", "Number", "Car", "Points", "Diff"},
                             r => r.Pos, r => r.Driver, r => r.Number, r => r.Car, r => r.Points, r => r.Diff);
@@ -191,6 +190,7 @@ namespace TTBot.Commands
                         {
                             string line = null;
                             int i = -2;
+                            sb.AppendLine("```");
                             while ((line = reader.ReadLine()) != null)
                             {
                                 if (i > 0 && i%10 == 0)
