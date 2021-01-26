@@ -26,11 +26,11 @@ namespace TTBot.DataAccess
             }
         }
 
-        public async Task<EventsWithCount> GetActiveEvent(string name, ulong guildId, ulong channelId)
+        public async Task<EventsWithCount> GetActiveEvent(string name, ulong guildId)
         {
             using (var con = await _conFactory.OpenAsync())
             {
-                return (await con.SelectAsync<EventsWithCount>(ev => (ev.Name.ToLower() == name.ToLower() || (ev.ShortName != null && ev.ShortName.ToLower() == name.ToLower())) && ev.GuildId == guildId.ToString() && ev.ChannelId == channelId.ToString() && !ev.Closed)).SingleOrDefault();
+                return (await con.SelectAsync<EventsWithCount>(ev => (ev.Name.ToLower() == name.ToLower() || (ev.ShortName != null && ev.ShortName.ToLower() == name.ToLower())) && ev.GuildId == guildId.ToString() && !ev.Closed)).SingleOrDefault();
             }
         }
 
@@ -54,6 +54,14 @@ namespace TTBot.DataAccess
             using (var con = _conFactory.Open())
             {
                 return await con.SingleAsync<EventsWithCount>(e => e.MessageId == messageId.ToString());
+            }
+        }
+
+        public async Task<EventsWithCount> GetEventByShortname(ulong guildId, string shortname)
+        {
+            using (var con = await _conFactory.OpenAsync())
+            {
+                return (await con.SelectAsync<EventsWithCount>(ev => (ev.ShortName.ToLower() == shortname.ToLower() && ev.GuildId == guildId.ToString()))).SingleOrDefault();
             }
         }
     }
