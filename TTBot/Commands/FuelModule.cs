@@ -94,8 +94,8 @@ namespace TTBot.Commands
 
                 builder.AddField(x =>
                 {
-                    x.Name = "Fuel (min)";
-                    x.Value = data.fuel.ToString("0.00");
+                    x.Name = "Minimum Fuel Required";
+                    x.Value = data.fuel.ToString("0.00") + "l";
                     x.IsInline = false;
                 });
 
@@ -103,8 +103,8 @@ namespace TTBot.Commands
                 double reserve_laps_perc = data.reserveLaps / (double)data.raceLaps * 100;
                 builder.AddField(x =>
                 {
-                    x.Name = $"Fuel (+{data.reserveLaps} laps / +{(int)reserve_laps_perc}%)";
-                    x.Value = data.fuelSave.ToString("0.00");
+                    x.Name = $"Safe Fuel (+{data.reserveLaps} laps / +{(int)reserve_laps_perc}%)";
+                    x.Value = data.fuelSave.ToString("0.00") + "l";
                     x.IsInline = false;
                 });
 
