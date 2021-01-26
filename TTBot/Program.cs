@@ -16,6 +16,7 @@ using ServiceStack.OrmLite;
 using TTBot.Models;
 using ServiceStack.Data;
 using System.Collections.Generic;
+using ServiceStack.Model;
 
 namespace TTBot
 {
@@ -100,6 +101,8 @@ namespace TTBot
             }
 
 
+            string nickName = reaction.User.Value.Username;
+
             if (reaction.User.Value is IGuildUser guildUser)
             {
                 var role = guildUser.Guild.Roles.FirstOrDefault(x => x.Id.ToString() == @event.RoleId);
@@ -113,10 +116,17 @@ namespace TTBot
                     catch (Discord.Net.HttpException) { /* ignore forbidden exception */ }
                     
                 }
-            }        
+
+                nickName = string.IsNullOrEmpty(guildUser.Nickname) ? nickName : guildUser.Nickname;
+            }
+
+
+            if (channel is SocketTextChannel textChannel)
+            {
+                await textChannel.Guild.Owner.SendMessageAsync($"{nickName} signed out of {@event.Name}");
+            }
 
             await eventSignups.DeleteAsync(existingSignup);
-
             await eventParticipantSets.UpdatePinnedMessageForEvent(channel, @event, message);
             await reaction.User.Value.SendMessageAsync($"Thanks! You've been removed from {@event.Name}.");
 
@@ -177,6 +187,8 @@ namespace TTBot
             }
 
 
+            var nickName = reaction.User.Value.Username;
+
             if(reaction.User.Value is IGuildUser guildUser)
             {
                 var role = guildUser.Guild.Roles.FirstOrDefault(x => x.Id.ToString() == @event.RoleId);
@@ -189,10 +201,20 @@ namespace TTBot
                     catch (Discord.Net.HttpException) { /* ignore forbidden exception */ }
                         
                 }
+
+                nickName = string.IsNullOrEmpty(guildUser.Nickname) ? nickName : guildUser.Nickname;
             }
 
             await eventSignups.AddUserToEvent(@event, reaction.User.Value);
             await eventParticipantSets.UpdatePinnedMessageForEvent(channel, @event, message);
+
+            
+
+            if(channel is SocketTextChannel textChannel)
+            {
+                await textChannel.Guild.Owner.SendMessageAsync($"{nickName} signed up to {@event.Name}");
+            }
+
             await reaction.User.Value.SendMessageAsync($"Thanks! You've been signed up to {@event.Name}. If you can no longer attend just remove your reaction from the signup message!");
         }
 
@@ -248,6 +270,7 @@ namespace TTBot
                 connection.CreateTableIfNotExists<Event>();
                 connection.CreateTableIfNotExists<EventSignup>();
                 connection.CreateTableIfNotExists<ConfirmationCheck>();
+                connection.CreateTableIfNotExists<ChampionshipResultsModel>();
                 connection.Execute(@"CREATE VIEW IF NOT EXISTS EventsWithCount
                                     AS
                                     SELECT *, (select count(*) from EventSignup where EventId = event.Id) as ParticipantCount
@@ -281,6 +304,9 @@ namespace TTBot
             services.AddScoped<IConfirmationChecks, ConfirmationChecks>();
             services.AddScoped<IConfirmationCheckPrinter, ConfirmationCheckPrinter>();
             services.AddScoped<IEventParticipantService, EventParticipantService>();
+            services.AddScoped<IChampionshipResults, ChampionshipResults>();
+            services.AddScoped<IExcelService, ExcelService>();
+            services.AddScoped<IExcelWrapper, ExcelWrapper>();
             services.AddSingleton(_client);
         }
 

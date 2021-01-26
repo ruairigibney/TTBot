@@ -47,11 +47,11 @@ namespace TTBot.Commands
                 return;
             }
 
-            var existingEvent = await _events.GetActiveEvent(eventName, Context.Guild.Id, Context.Channel.Id);
-            var existingEventWithAlias = await _events.GetActiveEvent(shortName, Context.Guild.Id, Context.Channel.Id);
+            var existingEvent = await _events.GetActiveEvent(eventName, Context.Guild.Id);
+            var existingEventWithAlias = await _events.GetActiveEvent(shortName, Context.Guild.Id);
             if (existingEvent != null || existingEventWithAlias != null)
             {
-                await Context.Channel.SendMessageAsync("There is already an active event with that name or short name for this channel. Event names must be unique!");
+                await Context.Channel.SendMessageAsync("There is already an active event with that name or short name. Event names must be unique!");
                 return;
             }
 
@@ -80,7 +80,7 @@ namespace TTBot.Commands
                 Capacity = capacity
             };
             await _events.SaveAsync(@event);
-            existingEvent = await _events.GetActiveEvent(eventName, Context.Guild.Id, Context.Channel.Id);
+            existingEvent = await _events.GetActiveEvent(eventName, Context.Guild.Id);
             await Context.Channel.SendMessageAsync($"{Context.Message.Author.Mention} has created the event {eventName}! React to the message below to sign up to the event. If you can no longer attend, simply remove your reaction!");
             await _eventParticipantService.CreateAndPinParticipantMessage(Context.Channel, existingEvent);
         }
@@ -96,7 +96,7 @@ namespace TTBot.Commands
                 return;
             }
 
-            var existingEvent = await _events.GetActiveEvent(eventName, Context.Guild.Id, Context.Channel.Id);
+            var existingEvent = await _events.GetActiveEvent(eventName, Context.Guild.Id);
             if (existingEvent == null)
             {
                 await Context.Channel.SendMessageAsync($"Unable to find an active event with the name {eventName}");
@@ -143,7 +143,7 @@ namespace TTBot.Commands
         [Alias("sign", "join")]
         public async Task SignUp([Remainder] string eventName)
         {
-            var existingEvent = await _events.GetActiveEvent(eventName, Context.Guild.Id, Context.Channel.Id);
+            var existingEvent = await _events.GetActiveEvent(eventName, Context.Guild.Id);
             if (existingEvent == null)
             {
                 await Context.Channel.SendMessageAsync($"Unable to find an active event with the name {eventName}");
@@ -161,6 +161,9 @@ namespace TTBot.Commands
                 return;
             }
 
+
+            string nickName = Context.Message.Author.Username;
+
             if (Context.Message.Author is IGuildUser guildUser)
             {
                 var role = guildUser.Guild.Roles.FirstOrDefault(x => x.Id.ToString() == existingEvent.RoleId);
@@ -172,9 +175,13 @@ namespace TTBot.Commands
                     }
                     catch (Discord.Net.HttpException) { /* ignore forbidden exception */ }
                 }
+
+                nickName = string.IsNullOrEmpty(guildUser.Nickname) ? nickName : guildUser.Nickname;
             }
 
+
             await _eventSignups.AddUserToEvent(existingEvent, Context.Message.Author as SocketGuildUser);
+            await Context.Guild.Owner.SendMessageAsync($"{nickName} signed up to {existingEvent.Name}");
             await Context.Message.Author.SendMessageAsync($"Thanks {Context.Message.Author.Mention}! You've been signed up to {existingEvent.Name}. You can check the pinned messages in the event's channel to see the list of participants.");
             await UpdateConfirmationCheckForEvent(existingEvent);
             await _eventParticipantService.UpdatePinnedMessageForEvent(Context.Channel, existingEvent);
@@ -184,7 +191,7 @@ namespace TTBot.Commands
         [Alias("unsignup")]
         public async Task Unsign([Remainder] string eventName)
         {
-            var existingEvent = await _events.GetActiveEvent(eventName, Context.Guild.Id, Context.Channel.Id);
+            var existingEvent = await _events.GetActiveEvent(eventName, Context.Guild.Id);
             if (existingEvent == null)
             {
                 await Context.Channel.SendMessageAsync($"Unable to find an active event with the name {eventName}");
@@ -197,7 +204,10 @@ namespace TTBot.Commands
                 return;
             }
 
-            if(Context.Message.Author is IGuildUser guildUser)
+
+            string nickName = Context.Message.Author.Username;
+
+            if (Context.Message.Author is IGuildUser guildUser)
             {
                 var role = guildUser.Guild.Roles.FirstOrDefault(x => x.Id.ToString() == existingEvent.RoleId);
                 if (role != null)
@@ -209,9 +219,12 @@ namespace TTBot.Commands
                     }
                     catch (Discord.Net.HttpException) { /* ignore forbidden exception */ }
                 }
+
+                nickName = string.IsNullOrEmpty(guildUser.Nickname) ? nickName : guildUser.Nickname;
             }
 
             await _eventSignups.DeleteAsync(existingSignup);
+            await Context.Guild.Owner.SendMessageAsync($"{nickName} signed out of {existingEvent.Name}");
             await Context.Channel.SendMessageAsync($"Thanks { Context.Message.Author.Mention}! You're no longer signed up to {existingEvent.Name}.");
             await UpdateConfirmationCheckForEvent(existingEvent);
             await _eventParticipantService.UpdatePinnedMessageForEvent(Context.Channel, existingEvent);
@@ -221,7 +234,7 @@ namespace TTBot.Commands
         [Alias("participants")]
         public async Task GetSignups([Remainder] string eventName)
         {
-            var existingEvent = await _events.GetActiveEvent(eventName, Context.Guild.Id, Context.Channel.Id);
+            var existingEvent = await _events.GetActiveEvent(eventName, Context.Guild.Id);
             if (existingEvent == null)
             {
                 await Context.Channel.SendMessageAsync($"Unable to find an active event with the name {eventName}");
@@ -244,7 +257,7 @@ namespace TTBot.Commands
                 return;
             }
 
-            var existingEvent = await _events.GetActiveEvent(eventName, Context.Guild.Id, Context.Channel.Id);
+            var existingEvent = await _events.GetActiveEvent(eventName, Context.Guild.Id);
             if (existingEvent == null)
             {
                 await Context.Channel.SendMessageAsync($"Unable to find an active event with the name {eventName}");
@@ -259,7 +272,7 @@ namespace TTBot.Commands
         [Command("remove", ignoreExtraArgs: true)]
         public async Task Remove(string eventName)
         {
-            var existingEvent = await _events.GetActiveEvent(eventName, Context.Guild.Id, Context.Channel.Id);
+            var existingEvent = await _events.GetActiveEvent(eventName, Context.Guild.Id);
             if (existingEvent == null)
             {
                 await Context.Channel.SendMessageAsync($"Unable to find an active event with the name {eventName}");
@@ -295,7 +308,7 @@ namespace TTBot.Commands
                 return;
             }
 
-            var existingEvent = await _events.GetActiveEvent(eventName, Context.Guild.Id, Context.Channel.Id);
+            var existingEvent = await _events.GetActiveEvent(eventName, Context.Guild.Id);
             if (existingEvent == null)
             {
                 await Context.Channel.SendMessageAsync($"Unable to find an active event with the name {eventName}");
