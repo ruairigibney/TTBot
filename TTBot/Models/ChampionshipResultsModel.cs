@@ -11,12 +11,15 @@ namespace TTBot.Models
         [AutoIncrement]
         [PrimaryKey]
         public int Id { get; set; }
-        public string Driver { get; set; }
 
         [ForeignKey(typeof(Event))]
         public int EventId { get; set; }
-        public string[] Positions { get; set; }
-        public int Points { get; set; }
+        public int Pos { get; set; }
+        public string Driver { get; set; }
+        public string Number { get; set; }
+        public string Car { get; set; }
+        public string Points { get; set; }
+        public string Diff { get; set; }
 
     }
 }

@@ -1,15 +1,11 @@
-﻿using Discord;
-using Discord.Commands;
+﻿using Discord.Commands;
 using Discord.WebSocket;
-using Microsoft.Extensions.Primitives;
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using System.Transactions;
 using TTBot.DataAccess;
 using TTBot.Models;
 using TTBot.Services;
@@ -83,35 +79,17 @@ namespace TTBot.Commands
                     }
 
                     var eventId = e.Id;
-                    var points = 0;
-
-                    foreach (String position in excelDriverDataModel.Positions)
-                    {
-                        if (string.IsNullOrWhiteSpace(position))
-                        {
-                            continue;
-                        }
-
-                        int p;
-                        if (position.Contains("*"))
-                        {
-                            points += ChampionshipPointsModel.FastestLapPoints;
-                            p = Int32.Parse(position.Remove(position.IndexOf("*"), 1));
-                        }
-                        else
-                        {
-                            p = Int32.Parse(position);
-                        }
-
-                        points += ChampionshipPointsModel.PointsAwarded[p];
-                    }
 
                     ChampionshipResultsModel championshipResult = new ChampionshipResultsModel()
                     {
                         EventId = eventId,
+                        Pos = excelDriverDataModel.Pos,
                         Driver = excelDriverDataModel.Driver,
-                        Positions = excelDriverDataModel.Positions,
-                        Points = points
+                        Number = excelDriverDataModel.Number,
+                        Car = excelDriverDataModel.Car,
+                        Points = excelDriverDataModel.Points,
+                        Diff = excelDriverDataModel.Diff
+
                     };
 
                     championshipResults.Add(championshipResult);
@@ -160,7 +138,7 @@ namespace TTBot.Commands
 
                     foreach (string e in events)
                     {
-                        sb.AppendLine($" - {e}");
+                        sb.AppendLine($" - \"{e}\"");
                     }
                 }
             } catch (Exception ex)
@@ -198,13 +176,11 @@ namespace TTBot.Commands
                 {
                     var eventId = e.Id;
                     var results = await _results.GetChampionshipResultsByIdAsync(eventId);
-                    var orderedResults = results.OrderByDescending(r => r.Points);
+                    var orderedResults = results.OrderBy(r => r.Pos);
 
-                    var pos = 1;
                     foreach (ChampionshipResultsModel r in orderedResults)
                     {
-                        sb.AppendLine($"#{pos}: {r.Driver}: {r.Points}");
-                        pos++;
+                        sb.AppendLine($"#{r.Pos}: {r.Driver} - {r.Number} - {r.Car} - {r.Points} - {r.Diff}");
                     }
                 }
             } catch (Exception ex)

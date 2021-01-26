@@ -29,9 +29,12 @@ namespace TTBot.DataAccess
                     await connection.InsertAsync(new ChampionshipResultsModel()
                     {
                         EventId = resultsModel.EventId,
+                        Pos = resultsModel.Pos,
                         Driver = resultsModel.Driver,
+                        Number = resultsModel.Number,
+                        Car = resultsModel.Car,
                         Points = resultsModel.Points,
-                        Positions = resultsModel.Positions
+                        Diff = resultsModel.Diff
                     });
                 }
             }

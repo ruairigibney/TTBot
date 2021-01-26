@@ -27,7 +27,8 @@ namespace TTBot.Services
             {
                 foreach (ExcelWorksheet worksheet in package.Workbook.Worksheets)
                 {
-                    if (worksheet.Dimension == null)
+                    if (worksheet.Dimension == null ||
+                        !ExcelSheetShortnameMappingModel.mappings.ContainsKey(worksheet.Name))
                     {
                         continue;
                     }
@@ -37,19 +38,21 @@ namespace TTBot.Services
 
                     for (int i = 0; i < rowCount; i++)
                     {
-                        var row = i + 1;
+                        var row = i + 3;
+                        if (string.IsNullOrWhiteSpace(worksheet.Cells[row, 3].Text))
+                        {
+                            continue;
+                        }
                         ExcelDriverDataModel excelDriverDataModel = new ExcelDriverDataModel()
                         {
-                            Championship = worksheet.Name,
-                            Driver = worksheet.Cells[row, 1].Text,
-                            Positions = new string[colCount - 1]
+                            Championship = ExcelSheetShortnameMappingModel.mappings[worksheet.Name],
+                            Pos = Int32.Parse(worksheet.Cells[row, 2].Text),
+                            Driver = worksheet.Cells[row, 3].Text,
+                            Number = worksheet.Cells[row, 4].Text,
+                            Car = worksheet.Cells[row, 5].Text,
+                            Points = worksheet.Cells[row, 6].Text,
+                            Diff = worksheet.Cells[row, 7].Text
                         };
-
-                        for (int ii = 0; ii < colCount - 1; ii++)
-                        {
-                            var col = ii + 2;
-                            excelDriverDataModel.Positions[ii] = worksheet.Cells[row, col].Text;
-                        }
 
                         excelDriverDataModels.Add(excelDriverDataModel);
                     }
