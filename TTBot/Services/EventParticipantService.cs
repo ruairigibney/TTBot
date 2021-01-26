@@ -77,7 +77,7 @@ namespace TTBot.Services
                 {
                     //handle user that left the guild
                     await _eventSignups.DeleteAsync(signup);
-
+                    continue;
                 }
                 users.Add(user);
             }
