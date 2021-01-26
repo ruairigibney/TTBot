@@ -4,7 +4,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 
-namespace TTBot.Services.Utilities
+namespace TTBot.Utilities
 {
     public static class TableParser
     {

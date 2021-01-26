@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 using TTBot.DataAccess;
 using TTBot.Models;
 using TTBot.Services;
-using TTBot.Services.Utilities;
+using TTBot.Utilities;
 
 namespace TTBot.Commands
 {
