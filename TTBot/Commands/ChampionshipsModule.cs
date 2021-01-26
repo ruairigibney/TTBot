@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using TTBot.DataAccess;
 using TTBot.Models;
 using TTBot.Services;
+using TTBot.Services.Utilities;
 
 namespace TTBot.Commands
 {
@@ -178,17 +179,48 @@ namespace TTBot.Commands
                     var results = await _results.GetChampionshipResultsByIdAsync(eventId);
                     var orderedResults = results.OrderBy(r => r.Pos);
 
-                    foreach (ChampionshipResultsModel r in orderedResults)
+                    sb.AppendLine("```");
+                    var resultsTable = orderedResults.ToStringTable(
+                        new[] { "Pos", "Driver", "Number", "Car", "Points", "Diff"},
+                            r => r.Pos, r => r.Driver, r => r.Number, r => r.Car, r => r.Points, r => r.Diff);
+
+                    if (resultsTable.Length >= 2000)
                     {
-                        sb.AppendLine($"#{r.Pos}: {r.Driver} - {r.Number} - {r.Car} - {r.Points} - {r.Diff}");
+                        // split in to multiple messages
+                        using (System.IO.StringReader reader = new System.IO.StringReader(resultsTable))
+                        {
+                            string line = null;
+                            int i = -2;
+                            while ((line = reader.ReadLine()) != null)
+                            {
+                                if (i > 0 && i%10 == 0)
+                                {
+                                    sb.AppendLine("```");
+                                }
+                                sb.AppendLine(line);
+                                if (i % 10 == 9)
+                                {
+                                    sb.AppendLine("```");
+                                    await ReplyAsync(sb.ToString());
+                                    sb = new StringBuilder();
+                                }
+                                i++;
+                            }
+                        }
+                    } else
+                    {
+                        sb.AppendLine("```");
+                        sb.AppendLine(resultsTable);
+                        sb.AppendLine("```");
+                        await ReplyAsync(sb.ToString());
                     }
                 }
             } catch (Exception ex)
             {
                 sb.AppendLine($"Error when getting standings: {ex.Message}");
+                await ReplyAsync(sb.ToString());
             }
 
-            await ReplyAsync(sb.ToString());
         }
 
         [Command("help")]
