@@ -139,7 +139,7 @@ namespace TTBot.Commands
 
                     foreach (string e in events)
                     {
-                        sb.AppendLine($" - \"{e}\"");
+                        sb.AppendLine($" - {e}");
                     }
                 }
             } catch (Exception ex)
@@ -151,7 +151,7 @@ namespace TTBot.Commands
         }
 
         [Command("standings")]
-        public async Task GetStandings(string args = null)
+        public async Task GetStandings([Remainder] string args = null)
         {
             var championship = args;
             var guildId = Context.Guild.Id;
