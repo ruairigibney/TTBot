@@ -62,7 +62,7 @@ namespace TTBot.Commands
 
                 foreach (ExcelDriverDataModel excelDriverDataModel in excelDriverDataModels)
                 {
-                    var e = await _events.GetEventByShortname(guildId, excelDriverDataModel.Championship);
+                    var e = await _events.GetActiveEvent(excelDriverDataModel.Championship, guildId);
 
                     if (e == null || e.Id == 0)
                     {
@@ -139,7 +139,7 @@ namespace TTBot.Commands
 
                     foreach (string e in events)
                     {
-                        sb.AppendLine($" - \"{e}\"");
+                        sb.AppendLine($" - {e}");
                     }
                 }
             } catch (Exception ex)
@@ -151,7 +151,7 @@ namespace TTBot.Commands
         }
 
         [Command("standings")]
-        public async Task GetStandings(string args = null)
+        public async Task GetStandings([Remainder] string args = null)
         {
             var championship = args;
             var guildId = Context.Guild.Id;
@@ -167,7 +167,7 @@ namespace TTBot.Commands
 
             try
             {
-                var e = await _events.GetEventByShortname(guildId, championship);
+                var e = await _events.GetActiveEvent(championship, guildId);
                 if (e == null || e.Id == 0)
                 {
                     sb.AppendLine("Championship not found");
