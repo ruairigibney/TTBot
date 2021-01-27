@@ -62,7 +62,7 @@ namespace TTBot.Commands
 
                 foreach (ExcelDriverDataModel excelDriverDataModel in excelDriverDataModels)
                 {
-                    var e = await _events.GetEventByShortname(guildId, excelDriverDataModel.Championship);
+                    var e = await _events.GetActiveEvent(excelDriverDataModel.Championship, guildId);
 
                     if (e == null || e.Id == 0)
                     {
@@ -167,7 +167,7 @@ namespace TTBot.Commands
 
             try
             {
-                var e = await _events.GetEventByShortname(guildId, championship);
+                var e = await _events.GetActiveEvent(championship, guildId);
                 if (e == null || e.Id == 0)
                 {
                     sb.AppendLine("Championship not found");
