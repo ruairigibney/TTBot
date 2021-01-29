@@ -194,7 +194,7 @@ namespace TTBot.Commands
 
                     int lastRowY = 0;
 
-                    string templateFilePath = @"assets/StandingsTemplate.png";
+                    string templateFilePath = @"Assets/StandingsTemplate.png";
                     using (Bitmap image = (Bitmap)Image.FromFile(templateFilePath))
                     using (Graphics graphics = Graphics.FromImage(image))
                     {
