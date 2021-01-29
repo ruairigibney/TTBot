@@ -2,6 +2,9 @@
 using Discord.WebSocket;
 using System;
 using System.Collections.Generic;
+using System.Drawing;
+using System.Drawing.Text;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -179,40 +182,82 @@ namespace TTBot.Commands
                     var results = await _results.GetChampionshipResultsByIdAsync(eventId);
                     var orderedResults = results.OrderBy(r => r.Pos);
 
-                    var resultsTable = orderedResults.ToStringTable(
-                        new[] { "Pos", "Driver", "Number", "Car", "Points", "Diff"},
-                            r => r.Pos, r => r.Driver, r => r.Number, r => r.Car, r => r.Points, r => r.Diff);
+                    var posXStart = 100;
+                    int posYStart = 375;
+                    int championshipX = 250;
+                    int championshipY = 230;
 
-                    if (resultsTable.Length >= 2000)
+                    var driverX = posXStart + 100;
+                    var numberX = driverX + 400;
+                    int pointsX = numberX + 110;
+                    int diffX = pointsX + 155;
+
+                    int lastRowY = 0;
+
+                    string templateFilePath = @"assets/StandingsTemplate.png";
+                    using (Bitmap image = (Bitmap)Image.FromFile(templateFilePath))
+                    using (Graphics graphics = Graphics.FromImage(image))
                     {
-                        // split in to multiple messages
-                        using (System.IO.StringReader reader = new System.IO.StringReader(resultsTable))
+                        PrivateFontCollection fontCol = new PrivateFontCollection();
+                        fontCol.AddFontFile(@"Assets\Formula1-Regular.otf");
+                        var formula1FontFamily = fontCol.Families[0];
+
+                        using (Font font = new Font(formula1FontFamily, 7))
+                        using (Font numberFont = new Font(formula1FontFamily, 6))
+                        using (Font longDriverFont = new Font(formula1FontFamily, 5))
+                        using (Font championshipFont = new Font(formula1FontFamily, 10))
+                        using (Font smallerChampionshipFont = new Font(formula1FontFamily, 7))
                         {
-                            string line = null;
-                            int i = -2;
-                            sb.AppendLine("```");
-                            while ((line = reader.ReadLine()) != null)
+                            graphics.DrawString(
+                                championship,
+                                championship.Trim().Length < 10 ? championshipFont : smallerChampionshipFont,
+                                new SolidBrush(Color.FromArgb(213, 213, 213)),
+                                championshipX,
+                                championshipY);
+
+                            int y = posYStart;
+                            foreach (ChampionshipResultsModel r in orderedResults)
                             {
-                                if (i > 0 && i%10 == 0)
-                                {
-                                    sb.AppendLine("```");
-                                }
-                                sb.AppendLine(line);
-                                if (i % 10 == 9)
-                                {
-                                    sb.AppendLine("```");
-                                    await ReplyAsync(sb.ToString());
-                                    sb = new StringBuilder();
-                                }
-                                i++;
+                                graphics.FillRoundedRectangle(Brushes.White, posXStart, y - 5, 60, 40, 4);
+
+                                var posX = r.Pos <= 9
+                                    ? posXStart + 15
+                                    : posXStart + 5;
+
+                                graphics.DrawString(r.Pos.ToString(), numberFont, Brushes.Black, posX, y);
+                                graphics.DrawString(
+                                    r.Driver,
+                                    r.Driver.Length <= 25 ? font : longDriverFont,
+                                    Brushes.White,
+                                    driverX,
+                                     r.Driver.Length <= 25 ? y : y + 6);
+                                graphics.DrawString(r.Number, font, Brushes.White, numberX, y);
+                                graphics.DrawString(r.Points, font, Brushes.White, pointsX, y);
+                                graphics.DrawString(r.Diff, font, Brushes.White, diffX, y);
+
+                                lastRowY = y;
+
+                                y += 50;
                             }
                         }
-                    } else
-                    {
-                        sb.AppendLine("```");
-                        sb.AppendLine(resultsTable);
-                        sb.AppendLine("```");
-                        await ReplyAsync(sb.ToString());
+
+                        using (MemoryStream memoryStream = new MemoryStream())
+                        {
+                            if (lastRowY + 75 < image.Height)
+                            {
+                                var imageCropRect = new Rectangle(0, 0, image.Width, lastRowY + 75);
+                                image.Clone(imageCropRect, System.Drawing.Imaging.PixelFormat.Format32bppArgb)
+                                    .Save(memoryStream, System.Drawing.Imaging.ImageFormat.Png);
+                            }
+                            else
+                            {
+                                image.Save(memoryStream, System.Drawing.Imaging.ImageFormat.Png);
+                            }
+
+                            memoryStream.Position = 0;
+                            await Context.Channel.SendFileAsync
+                                (memoryStream, $"{championship}-standings-{DateTime.Now.ToString("yyyy-dd-M-HH-mm-ss")}.png");
+                        }
                     }
                 }
             } catch (Exception ex)
@@ -220,7 +265,6 @@ namespace TTBot.Commands
                 sb.AppendLine($"Error when getting standings: {ex.Message}");
                 await ReplyAsync(sb.ToString());
             }
-
         }
 
         [Command("help")]
