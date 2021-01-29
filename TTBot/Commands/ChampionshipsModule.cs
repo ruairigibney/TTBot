@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Text;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -181,9 +182,6 @@ namespace TTBot.Commands
                     var results = await _results.GetChampionshipResultsByIdAsync(eventId);
                     var orderedResults = results.OrderBy(r => r.Pos);
 
-                    string templateFilePath = @"assets/StandingsTemplate.png";
-                    Bitmap image = (Bitmap)Image.FromFile(templateFilePath);//load the image file
-
                     var posXStart = 100;
                     int posYStart = 375;
                     int championshipX = 250;
@@ -196,6 +194,8 @@ namespace TTBot.Commands
 
                     int lastRowY = 0;
 
+                    string templateFilePath = @"assets/StandingsTemplate.png";
+                    using (Bitmap image = (Bitmap)Image.FromFile(templateFilePath))
                     using (Graphics graphics = Graphics.FromImage(image))
                     {
                         PrivateFontCollection fontCol = new PrivateFontCollection();
@@ -239,30 +239,32 @@ namespace TTBot.Commands
 
                                 y += 50;
                             }
-                        }   
+                        }
+
+                        using (MemoryStream memoryStream = new MemoryStream())
+                        {
+                            if (lastRowY + 75 < image.Height)
+                            {
+                                var imageCropRect = new Rectangle(0, 0, image.Width, lastRowY + 75);
+                                image.Clone(imageCropRect, System.Drawing.Imaging.PixelFormat.Format32bppArgb)
+                                    .Save(memoryStream, System.Drawing.Imaging.ImageFormat.Png);
+                            }
+                            else
+                            {
+                                image.Save(memoryStream, System.Drawing.Imaging.ImageFormat.Png);
+                            }
+
+                            memoryStream.Position = 0;
+                            await Context.Channel.SendFileAsync
+                                (memoryStream, $"{championship}-standings-{DateTime.Now.ToString("yyyy-dd-M-HH-mm-ss")}.png");
+                        }
                     }
-
-                    var standingsFilePath = $"{templateFilePath.Replace(".png", "")}-{Guid.NewGuid()}.png";
-                    if (lastRowY + 75 < image.Height)
-                    {
-                        var imageCropRect = new Rectangle(0, 0, image.Width, lastRowY + 75);
-                        var croppedImage = (Bitmap)image.Clone(imageCropRect, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
-                        croppedImage.Save(standingsFilePath);
-                    } else
-                    {
-                        image.Save(standingsFilePath);
-                    }
-                    await Context.Channel.SendFileAsync(standingsFilePath);
-                    image.Dispose();
-
-
                 }
             } catch (Exception ex)
             {
                 sb.AppendLine($"Error when getting standings: {ex.Message}");
                 await ReplyAsync(sb.ToString());
             }
-
         }
 
         [Command("help")]
