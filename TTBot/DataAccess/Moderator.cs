@@ -31,7 +31,6 @@ namespace TTBot.DataAccess
             }
         }
 
-
         public async Task RemoveRoleAsModeratorAsync(ulong guildId, ulong roleId)
         {
             using (var connection = _dbConnectionFactory.Open())

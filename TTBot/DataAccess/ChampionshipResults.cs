@@ -47,7 +47,7 @@ namespace TTBot.DataAccess
                        .Join<Event>()
                        .Where<Event>(x => x.GuildId == guildId);
 
-                await connection.DeleteAsync<ChampionshipResultsModel>(q);
+                await connection.DeleteAsync(q);
             }
         }
 

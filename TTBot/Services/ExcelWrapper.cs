@@ -5,18 +5,22 @@ using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Text;
+using System.Threading.Tasks;
+using TTBot.DataAccess;
 using TTBot.Models;
 
 namespace TTBot.Services
 {
     public class ExcelWrapper : IExcelWrapper
     {
-        public ExcelWrapper()
+        private readonly IExcelSheetEventMapping _excelSheetEventMapping;
+        public ExcelWrapper(IExcelSheetEventMapping excelSheetEventMapping)
         {
             ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
+            _excelSheetEventMapping = excelSheetEventMapping ?? throw new ArgumentNullException(nameof(IExcelSheetEventMapping));
         }
 
-        public List<ExcelChampionshipRoundModel> GetChampionshipRoundsData(Attachment attachment)
+        public async Task<List<ExcelChampionshipRoundModel>> GetChampionshipRoundsData(Attachment attachment)
         {
             List<ExcelChampionshipRoundModel> excelChampionshipRounds = new List<ExcelChampionshipRoundModel>();
 
@@ -27,8 +31,9 @@ namespace TTBot.Services
             {
                 foreach (ExcelWorksheet worksheet in package.Workbook.Worksheets)
                 {
-                    if (worksheet.Dimension == null ||
-                        !ExcelSheetMappingModel.roundsMappings.ContainsKey(worksheet.Name))
+                    var eventShortname = await _excelSheetEventMapping.GetEventShortnameFromSheetNameAsync(worksheet.Name, true);
+
+                    if (worksheet.Dimension == null || eventShortname == null)
                     {
                         continue;
                     }
@@ -58,7 +63,7 @@ namespace TTBot.Services
 
                     excelChampionshipRounds.Add(new ExcelChampionshipRoundModel()
                     {
-                        Championship = ExcelSheetMappingModel.roundsMappings[worksheet.Name],
+                        Championship = eventShortname,
                         Round = maxRound
                     });
                 }
@@ -67,7 +72,7 @@ namespace TTBot.Services
             return excelChampionshipRounds;
         }
 
-        public List<ExcelDriverDataModel> GetExcelDriverData(Attachment attachment)
+        public async Task<List<ExcelDriverDataModel>> GetExcelDriverData(Attachment attachment)
         {
             List<ExcelDriverDataModel> excelDriverDataModels = new List<ExcelDriverDataModel>();
 
@@ -78,8 +83,9 @@ namespace TTBot.Services
             {
                 foreach (ExcelWorksheet worksheet in package.Workbook.Worksheets)
                 {
-                    if (worksheet.Dimension == null ||
-                        !ExcelSheetMappingModel.championshipsMappings.ContainsKey(worksheet.Name))
+                    var eventShortname = await _excelSheetEventMapping.GetEventShortnameFromSheetNameAsync(worksheet.Name, false);
+
+                    if (worksheet.Dimension == null || eventShortname == null)
                     {
                         continue;
                     }
@@ -96,7 +102,7 @@ namespace TTBot.Services
                         }
                         ExcelDriverDataModel excelDriverDataModel = new ExcelDriverDataModel()
                         {
-                            Championship = ExcelSheetMappingModel.championshipsMappings[worksheet.Name],
+                            Championship = eventShortname,
                             Pos = Int32.Parse(worksheet.Cells[row, 2].Text),
                             Driver = worksheet.Cells[row, 3].Text,
                             Number = worksheet.Cells[row, 4].Text,
