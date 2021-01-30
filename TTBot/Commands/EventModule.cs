@@ -127,7 +127,7 @@ namespace TTBot.Commands
         [Alias("current", "open")]
         public async Task ActiveEvents()
         {
-            var activeEvents = await _events.GetActiveEvents(Context.Guild.Id, Context.Channel.Id);
+            var activeEvents = await _events.GetActiveEvents(Context.Guild.Id);
             if (!activeEvents.Any())
             {
                 await Context.Channel.SendMessageAsync($"There's no events currently running for {Discord.MentionUtils.MentionChannel(Context.Channel.Id)}.");

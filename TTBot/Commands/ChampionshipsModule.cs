@@ -17,6 +17,7 @@ using TTBot.Utilities;
 namespace TTBot.Commands
 {
     [Group("championships")]
+    [Alias("c", "champ", "champs", "championship")]
     public class ChampionshipsModule : ModuleBase<SocketCommandContext>
     {
         private readonly IChampionshipResults _results;
@@ -102,6 +103,20 @@ namespace TTBot.Commands
 
                 await _results.AddAsync(championshipResults);
 
+                var derivedRoundsForChampionships = await _excelService.DeriveRoundsFromAttachment(attachment);
+                foreach (var c in derivedRoundsForChampionships)
+                {
+                    var e = await _events.GetActiveEvent(c.Championship, guildId);
+
+                    if (e == null || e.Id == 0)
+                    {
+                        continue;
+                    }
+
+                    e.Round = c.Round;
+                    await _events.SaveAsync(e);
+                }
+
 
             } catch (Exception ex)
             {
@@ -122,6 +137,7 @@ namespace TTBot.Commands
         }
 
         [Command("list")]
+        [Alias("l")]
         public async Task GetChampionships()
         {
 
@@ -154,11 +170,10 @@ namespace TTBot.Commands
         }
 
         [Command("standings")]
+        [Alias("s")]
         public async Task GetStandings([Remainder] string args = null)
         {
-            var championship = args;
             var guildId = Context.Guild.Id;
-
             var sb = new StringBuilder();
 
             if (args == null)
@@ -166,26 +181,59 @@ namespace TTBot.Commands
                 sb.AppendLine("No championship provided");
                 await ReplyAsync(sb.ToString());
                 return;
-            }
+            } else if (args == "all")
+            {
+                var author = Context.Message.Author as SocketGuildUser;
+                if (!await _permissionService.UserIsModeratorAsync(Context, author))
+                {
+                    await Context.Channel.SendMessageAsync("You dont have permission to display all standings");
+                    return;
+                }
 
+                var championships = await _events.GetActiveEvents(guildId);
+                foreach (var c in championships)
+                {
+                    await writeStandingsForChampionship(c.ShortName, guildId);
+                }
+            } else
+            {
+                await writeStandingsForChampionship(args, guildId);
+            }
+        }
+
+        private async Task writeStandingsForChampionship(string alias, ulong guildId)
+        {
+
+            var sb = new StringBuilder();
             try
             {
+                var championship = ChampionshipAliasesModel.GetEventShortnameFromAlias(alias);
+                if (championship == null)
+                {
+                    sb.AppendLine($"Championship alias {alias} not found");
+                    await ReplyAsync(sb.ToString());
+                    return;
+                }
+
                 var e = await _events.GetActiveEvent(championship, guildId);
                 if (e == null || e.Id == 0)
                 {
-                    sb.AppendLine("Championship not found");
+                    sb.AppendLine($"Championship {championship} not found");
                     await ReplyAsync(sb.ToString());
                     return;
-                } else
+                }
+                else
                 {
                     var eventId = e.Id;
                     var results = await _results.GetChampionshipResultsByIdAsync(eventId);
                     var orderedResults = results.OrderBy(r => r.Pos);
 
-                    var posXStart = 100;
+                    int posXStart = Utilities.OperatingSystem.IsWindows() ? 100 : 110;
                     int posYStart = 375;
                     int championshipX = 250;
                     int championshipY = 230;
+                    int roundX = 700;
+                    int roundY = 210;
 
                     var driverX = posXStart + 100;
                     var numberX = driverX + 400;
@@ -202,52 +250,73 @@ namespace TTBot.Commands
                         fontCol.AddFontFile(@"Assets/Fonts/Formula1-Regular.otf");
                         var formula1FontFamily = fontCol.Families[0];
 
-                        Font font, numberFont, longDriverFont, championshipFont;
+                        Font font, numberFont, longDriverFont, largerFont;
                         if (Utilities.OperatingSystem.IsWindows())
                         {
-                            font = new Font(formula1FontFamily, 7);
-                            numberFont = new Font(formula1FontFamily, 6);
+                            font = new Font(formula1FontFamily, 8);
+                            numberFont = new Font(formula1FontFamily, 7);
                             longDriverFont = new Font(formula1FontFamily, 5);
-                            championshipFont = new Font(formula1FontFamily, 10);
-                        } else
-                        {
-                            font = new Font(formula1FontFamily.Name, 20);
-                            numberFont = new Font(formula1FontFamily.Name, 18);
-                            longDriverFont = new Font(formula1FontFamily.Name, 16);
-                            championshipFont = new Font(formula1FontFamily.Name, 32);
+                            largerFont = new Font(formula1FontFamily, 10);
                         }
+                        else
+                        {
+                            font = new Font(formula1FontFamily.Name, 24);
+                            numberFont = new Font(formula1FontFamily.Name, 20);
+                            longDriverFont = new Font(formula1FontFamily.Name, 18);
+                            largerFont = new Font(formula1FontFamily.Name, 28);
+                        }
+                        
+                        // write championship
+                        Size championshipSize = new Size(120, 200);
+                        graphics.DrawString(
+                            championship,
+                            graphics.GetAdjustedFont(championship, largerFont, championshipSize),
+                            new SolidBrush(Color.FromArgb(213, 213, 213)),
+                            championshipX,
+                            championshipY);; ;
+
+                        // write round (if it's available)
+                        if (e.Round > 0)
                         {
                             graphics.DrawString(
-                                championship,
-                                championship.Trim().Length < 10 ? championshipFont : font,
+                                $"Round {e.Round}",
+                                largerFont,
                                 new SolidBrush(Color.FromArgb(213, 213, 213)),
-                                championshipX,
-                                championshipY);
+                                roundX,
+                                roundY);
+                        }
 
-                            int y = posYStart;
-                            foreach (ChampionshipResultsModel r in orderedResults)
-                            {
-                                graphics.FillRoundedRectangle(Brushes.White, posXStart, y - 5, 60, 40, 4);
+                        int y = Utilities.OperatingSystem.IsWindows() ? posYStart : posYStart - 4;
+                        foreach (ChampionshipResultsModel r in orderedResults)
+                        {
+                            graphics.FillRoundedRectangle(
+                                Brushes.White,
+                                posXStart,
+                                y - 5,
+                                50,
+                                40,
+                                4);
 
-                                var posX = r.Pos <= 9
-                                    ? posXStart + 15
-                                    : posXStart + 5;
+                            var posX = r.Pos <= 9
+                                ? posXStart + 15
+                                : posXStart + 5;
 
-                                graphics.DrawString(r.Pos.ToString(), numberFont, Brushes.Black, posX, y);
-                                graphics.DrawString(
-                                    r.Driver,
-                                    r.Driver.Length <= 25 ? font : longDriverFont,
-                                    Brushes.White,
-                                    driverX,
-                                     r.Driver.Length <= 25 ? y : y + 6);
-                                graphics.DrawString(r.Number, font, Brushes.White, numberX, y);
-                                graphics.DrawString(r.Points, font, Brushes.White, pointsX, y);
-                                graphics.DrawString(r.Diff, font, Brushes.White, diffX, y);
+                            var yCoord = Utilities.OperatingSystem.IsWindows() ? y : y + 2;
 
-                                lastRowY = y;
+                            graphics.DrawString(r.Pos.ToString(), numberFont, Brushes.Black, posX, yCoord);
+                            graphics.DrawString(
+                                r.Driver,
+                                r.Driver.Length <= 25 ? font : longDriverFont,
+                                Brushes.White,
+                                driverX,
+                                    r.Driver.Length <= 25 ? yCoord : yCoord + 6);
+                            graphics.DrawString(r.Number, font, Brushes.White, numberX, yCoord);
+                            graphics.DrawString(r.Points, font, Brushes.White, pointsX, yCoord);
+                            graphics.DrawString(r.Diff, font, Brushes.White, diffX, yCoord);
 
-                                y += 50;
-                            }
+                            lastRowY = y;
+
+                            y += 50;
                         }
 
                         using (MemoryStream memoryStream = new MemoryStream())
@@ -268,10 +337,11 @@ namespace TTBot.Commands
                                 (memoryStream, $"{championship}-standings-{DateTime.Now.ToString("yyyy-dd-M-HH-mm-ss")}.png");
                         }
 
-                        font.Dispose(); numberFont.Dispose(); longDriverFont.Dispose(); championshipFont.Dispose();
+                        font.Dispose(); numberFont.Dispose(); longDriverFont.Dispose(); largerFont.Dispose();
                     }
                 }
-            } catch (Exception ex)
+            }
+            catch (Exception ex)
             {
                 sb.AppendLine($"Error when getting standings: {ex.Message}");
                 await ReplyAsync(sb.ToString());

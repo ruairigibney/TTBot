@@ -23,5 +23,23 @@ namespace TTBot.Utilities
 
 			g.FillPath(brush, path);
 		}
-	}
+
+        public static Font GetAdjustedFont(this Graphics graphic, string str, Font originalFont, Size containerSize)
+        {
+            for (int adjustedSize = (int)originalFont.Size; adjustedSize >= 1; adjustedSize--)
+            {
+                var testFont = new Font(originalFont.Name, adjustedSize, originalFont.Style);
+
+                var adjustedSizeNew = graphic.MeasureString(str, testFont, containerSize.Width);
+
+                if (containerSize.Height > Convert.ToInt32(adjustedSizeNew.Height)
+                    && containerSize.Width > Convert.ToInt32(adjustedSizeNew.Width))
+                {
+                    return testFont;
+                }
+            }
+
+            return new Font(originalFont.Name, 1, originalFont.Style);
+        }
+    }
 }

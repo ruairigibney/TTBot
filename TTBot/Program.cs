@@ -277,6 +277,15 @@ namespace TTBot
                                     FROM [Event]
                                     ");
 
+                try
+                {
+                    connection.Execute(@"ALTER TABLE Event
+                                        ADD Round INT");
+                } catch
+                {
+                    Console.WriteLine("Round field already exists");
+                }
+
             }
         }
 
