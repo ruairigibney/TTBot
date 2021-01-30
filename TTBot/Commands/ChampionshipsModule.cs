@@ -199,18 +199,27 @@ namespace TTBot.Commands
                     using (Graphics graphics = Graphics.FromImage(image))
                     {
                         PrivateFontCollection fontCol = new PrivateFontCollection();
-                        fontCol.AddFontFile(@"Assets\Formula1-Regular.otf");
+                        fontCol.AddFontFile(@"Assets/Fonts/Formula1-Regular.otf");
                         var formula1FontFamily = fontCol.Families[0];
 
-                        using (Font font = new Font(formula1FontFamily, 7))
-                        using (Font numberFont = new Font(formula1FontFamily, 6))
-                        using (Font longDriverFont = new Font(formula1FontFamily, 5))
-                        using (Font championshipFont = new Font(formula1FontFamily, 10))
-                        using (Font smallerChampionshipFont = new Font(formula1FontFamily, 7))
+                        Font font, numberFont, longDriverFont, championshipFont;
+                        if (Utilities.OperatingSystem.IsWindows())
+                        {
+                            font = new Font(formula1FontFamily, 7);
+                            numberFont = new Font(formula1FontFamily, 6);
+                            longDriverFont = new Font(formula1FontFamily, 5);
+                            championshipFont = new Font(formula1FontFamily, 10);
+                        } else
+                        {
+                            font = new Font(formula1FontFamily.Name, 20);
+                            numberFont = new Font(formula1FontFamily.Name, 18);
+                            longDriverFont = new Font(formula1FontFamily.Name, 16);
+                            championshipFont = new Font(formula1FontFamily.Name, 32);
+                        }
                         {
                             graphics.DrawString(
                                 championship,
-                                championship.Trim().Length < 10 ? championshipFont : smallerChampionshipFont,
+                                championship.Trim().Length < 10 ? championshipFont : font,
                                 new SolidBrush(Color.FromArgb(213, 213, 213)),
                                 championshipX,
                                 championshipY);
@@ -258,6 +267,8 @@ namespace TTBot.Commands
                             await Context.Channel.SendFileAsync
                                 (memoryStream, $"{championship}-standings-{DateTime.Now.ToString("yyyy-dd-M-HH-mm-ss")}.png");
                         }
+
+                        font.Dispose(); numberFont.Dispose(); longDriverFont.Dispose(); championshipFont.Dispose();
                     }
                 }
             } catch (Exception ex)

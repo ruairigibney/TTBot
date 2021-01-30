@@ -21,10 +21,10 @@
 		<PackageReference Include="System.Data.SqlClient" Version="4.8.2" />
 		<PackageReference Include="System.Runtime" Version="4.3.1" />
 
-		<Content Include="Assets\StandingsTemplate.png">
+		<Content Include="Assets/StandingsTemplate.png">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</Content>
-		<Content Include="Assets\Formula1-Regular.otf">
+		<Content Include="Assets/Fonts/Formula1-Regular.otf">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</Content>
 	</ItemGroup>
