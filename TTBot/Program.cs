@@ -276,16 +276,6 @@ namespace TTBot
                                     SELECT *, (select count(*) from EventSignup where EventId = event.Id) as ParticipantCount
                                     FROM [Event]
                                     ");
-
-                try
-                {
-                    connection.Execute(@"ALTER TABLE Event
-                                        ADD Round INT");
-                } catch
-                {
-                    Console.WriteLine("Round field already exists");
-                }
-
             }
         }
 
