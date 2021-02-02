@@ -276,7 +276,6 @@ namespace TTBot
                                     SELECT *, (select count(*) from EventSignup where EventId = event.Id) as ParticipantCount
                                     FROM [Event]
                                     ");
-
             }
         }
 

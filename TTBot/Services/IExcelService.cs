@@ -10,5 +10,6 @@ namespace TTBot.Services
     public interface IExcelService
     {
         Task<List<ExcelDriverDataModel>> ReadResultsDataFromAttachment(Attachment attachment);
+        Task<List<ExcelChampionshipRoundModel>> DeriveRoundsFromAttachment(Attachment attachment);
     }
 }

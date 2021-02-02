@@ -7,5 +7,6 @@ namespace TTBot.Services
     public interface IExcelWrapper
     {
         public List<ExcelDriverDataModel> GetExcelDriverData(Attachment attachment);
+        public List<ExcelChampionshipRoundModel> GetChampionshipRoundsData(Attachment attachment); 
     }
 }

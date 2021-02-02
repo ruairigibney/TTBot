@@ -34,11 +34,11 @@ namespace TTBot.DataAccess
             }
         }
 
-        public async Task<List<EventsWithCount>> GetActiveEvents(ulong guildId, ulong channelId)
+        public async Task<List<EventsWithCount>> GetActiveEvents(ulong guildId)
         {
             using (var con = await _conFactory.OpenAsync())
             {
-                return await con.SelectAsync<EventsWithCount>(ev => ev.GuildId == guildId.ToString() && ev.ChannelId == channelId.ToString() && !ev.Closed);
+                return await con.SelectAsync<EventsWithCount>(ev => ev.GuildId == guildId.ToString() && !ev.Closed);
             }
         }
 

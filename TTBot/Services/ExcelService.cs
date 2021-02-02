@@ -17,6 +17,11 @@ namespace TTBot.Services
             _excelPackage = excelPackage ?? throw new ArgumentNullException(nameof(excelPackage));
         }
 
+        public async Task<List<ExcelChampionshipRoundModel>> DeriveRoundsFromAttachment(Attachment attachment)
+        {
+            return _excelPackage.GetChampionshipRoundsData(attachment);
+        }
+
         public async Task<List<ExcelDriverDataModel>> ReadResultsDataFromAttachment(Attachment attachment)
         {
             return _excelPackage.GetExcelDriverData(attachment);
