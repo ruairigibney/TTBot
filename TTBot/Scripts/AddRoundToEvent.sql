@@ -1,2 +1,2 @@
 ALTER TABLE Event
-ADD Round INT
+ADD Round INT NULL

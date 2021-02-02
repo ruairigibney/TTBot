@@ -49,7 +49,7 @@ namespace TTBot.Services
 
                                 if (!string.IsNullOrWhiteSpace(worksheet.Cells[row, col].Text)) {
                                     maxRound = int.Parse(roundBeingRead);
-                                    c++; // skip the last lap column
+                                    c++; // skip the Fast Lap column
                                     break;
                                 }
                             }
