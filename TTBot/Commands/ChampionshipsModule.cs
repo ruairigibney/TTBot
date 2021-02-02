@@ -202,24 +202,23 @@ namespace TTBot.Commands
                 }
             } else
             {
-                await writeStandingsForChampionship(args, guildId);
+                var championship = ChampionshipAliasesModel.GetEventShortnameFromAlias(args);
+                if (championship == null)
+                {
+                    sb.AppendLine($"Championship alias {args} not found");
+                    await ReplyAsync(sb.ToString());
+                    return;
+                }
+                await writeStandingsForChampionship(championship, guildId);
             }
         }
 
-        private async Task writeStandingsForChampionship(string alias, ulong guildId)
+        private async Task writeStandingsForChampionship(string championship, ulong guildId)
         {
 
             var sb = new StringBuilder();
             try
             {
-                var championship = ChampionshipAliasesModel.GetEventShortnameFromAlias(alias);
-                if (championship == null)
-                {
-                    sb.AppendLine($"Championship alias {alias} not found");
-                    await ReplyAsync(sb.ToString());
-                    return;
-                }
-
                 var e = await _events.GetActiveEvent(championship, guildId);
                 if (e == null || e.Id == 0)
                 {
