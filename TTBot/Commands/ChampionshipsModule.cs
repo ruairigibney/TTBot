@@ -85,6 +85,11 @@ namespace TTBot.Commands
 
                     var eventId = e.Id;
 
+                    // clear the Round column for each championship imported
+                    // (it will be populated later and we want to avoid stale data)
+                    e.Round = 0;
+                    await _events.SaveAsync(e);
+
                     ChampionshipResultsModel championshipResult = new ChampionshipResultsModel()
                     {
                         EventId = eventId,
@@ -226,6 +231,11 @@ namespace TTBot.Commands
                 {
                     var eventId = e.Id;
                     var results = await _results.GetChampionshipResultsByIdAsync(eventId);
+                    if (results.Count == 0)
+                    {
+                        return;
+                    }
+
                     var orderedResults = results.OrderBy(r => r.Pos);
 
                     int posXStart = Utilities.OperatingSystem.IsWindows() ? 100 : 110;
@@ -276,7 +286,7 @@ namespace TTBot.Commands
                             championshipY);; ;
 
                         // write round (if it's available)
-                        if (e.Round > 0)
+                        if (e.Round != null && e.Round > 0)
                         {
                             graphics.DrawString(
                                 $"Round {e.Round}",
@@ -286,13 +296,13 @@ namespace TTBot.Commands
                                 roundY);
                         }
 
-                        int y = Utilities.OperatingSystem.IsWindows() ? posYStart : posYStart - 4;
+                        int y = Utilities.OperatingSystem.IsWindows() ? posYStart - 1 : posYStart - 4;
                         foreach (ChampionshipResultsModel r in orderedResults)
                         {
                             graphics.FillRoundedRectangle(
                                 Brushes.White,
-                                posXStart,
-                                y - 5,
+                                Utilities.OperatingSystem.IsWindows() ? posXStart + 7: posXStart + 1,
+                                Utilities.OperatingSystem.IsWindows() ? y - 3 : y - 5,
                                 50,
                                 40,
                                 4);
@@ -301,18 +311,16 @@ namespace TTBot.Commands
                                 ? posXStart + 15
                                 : posXStart + 5;
 
-                            var yCoord = Utilities.OperatingSystem.IsWindows() ? y : y + 2;
-
-                            graphics.DrawString(r.Pos.ToString(), numberFont, Brushes.Black, posX, yCoord);
+                            graphics.DrawString(r.Pos.ToString(), numberFont, Brushes.Black, posX, y);
                             graphics.DrawString(
                                 r.Driver,
                                 r.Driver.Length <= 25 ? font : longDriverFont,
                                 Brushes.White,
                                 driverX,
-                                    r.Driver.Length <= 25 ? yCoord : yCoord + 6);
-                            graphics.DrawString(r.Number, font, Brushes.White, numberX, yCoord);
-                            graphics.DrawString(r.Points, font, Brushes.White, pointsX, yCoord);
-                            graphics.DrawString(r.Diff, font, Brushes.White, diffX, yCoord);
+                                    r.Driver.Length <= 25 ? y : y + 6);
+                            graphics.DrawString(r.Number, font, Brushes.White, numberX, y);
+                            graphics.DrawString(r.Points, font, Brushes.White, pointsX, y);
+                            graphics.DrawString(r.Diff, font, Brushes.White, diffX, y);
 
                             lastRowY = y;
 
