@@ -21,6 +21,6 @@ namespace TTBot.Models
         [Ignore]
         public string DisplayName => ShortName ?? Name;
         public string MessageId { get; set; }
-        public int Round { get; set; }
+        public int? Round { get; set; }
     }
 }

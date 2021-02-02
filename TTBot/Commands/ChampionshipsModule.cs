@@ -286,7 +286,7 @@ namespace TTBot.Commands
                             championshipY);; ;
 
                         // write round (if it's available)
-                        if (e.Round > 0)
+                        if (e.Round != null && e.Round > 0)
                         {
                             graphics.DrawString(
                                 $"Round {e.Round}",
@@ -296,7 +296,7 @@ namespace TTBot.Commands
                                 roundY);
                         }
 
-                        int y = Utilities.OperatingSystem.IsWindows() ? posYStart : posYStart - 4;
+                        int y = Utilities.OperatingSystem.IsWindows() ? posYStart - 1 : posYStart - 4;
                         foreach (ChampionshipResultsModel r in orderedResults)
                         {
                             graphics.FillRoundedRectangle(
