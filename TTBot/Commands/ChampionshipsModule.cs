@@ -451,7 +451,14 @@ namespace TTBot.Commands
                     var em = item.value;
                     var index = item.i;
 
-                    if (eId != em.EventId)
+                    // only list active events
+                    if (allActiveEvents.Where<Event>
+                            (e => (ulong)e.Id == em.EventId).Select(e => e.ShortName).FirstOrDefault() == null)
+                    {
+                        continue;
+                    }
+
+                        if (eId != em.EventId)
                     {
                         if (eId > 0)
                         {
@@ -564,6 +571,13 @@ namespace TTBot.Commands
                 {
                     var w = item.value;
                     var index = item.i;
+
+                    // only list active events
+                    if (allActiveEvents.Where<Event>
+                            (e => (ulong)e.Id == w.EventId).Select(e => e.ShortName).FirstOrDefault() == null)
+                    {
+                        continue;
+                    }
 
                     if (eId != w.EventId)
                     {
