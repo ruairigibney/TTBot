@@ -90,7 +90,8 @@ namespace TTBot.Services
                     for (int i = 0; i < rowCount; i++)
                     {
                         var row = i + 3;
-                        if (string.IsNullOrWhiteSpace(worksheet.Cells[row, 3].Text))
+                        if (string.IsNullOrWhiteSpace(worksheet.Cells[row, 3].Text)
+                            || worksheet.Cells[row, 3].Text == "0")
                         {
                             continue;
                         }
