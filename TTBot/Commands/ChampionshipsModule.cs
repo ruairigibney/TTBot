@@ -1,4 +1,5 @@
-﻿using Discord.Commands;
+﻿using Discord;
+using Discord.Commands;
 using Discord.WebSocket;
 using System;
 using System.Collections.Generic;
@@ -139,6 +140,10 @@ namespace TTBot.Commands
             }
 
             await ReplyAsync(sb.ToString());
+
+            var standingsChannelId = Context.Guild.Channels.First(c => c.Name.Contains("standings-wpr")).Id;
+            var channel = Context.Guild.GetChannel(standingsChannelId) as IMessageChannel;
+            await channel.SendMessageAsync(":medal:Standings have just been updated.");
         }
 
         [Command("list")]
@@ -252,7 +257,7 @@ namespace TTBot.Commands
                     int lastRowY = 0;
 
                     string templateFilePath = @"Assets/StandingsTemplate.png";
-                    using (Bitmap image = (Bitmap)Image.FromFile(templateFilePath))
+                    using (Bitmap image = (Bitmap)System.Drawing.Image.FromFile(templateFilePath))
                     using (Graphics graphics = Graphics.FromImage(image))
                     {
                         PrivateFontCollection fontCol = new PrivateFontCollection();
@@ -280,7 +285,7 @@ namespace TTBot.Commands
                         graphics.DrawString(
                             championship,
                             graphics.GetAdjustedFont(championship, largerFont, championshipSize),
-                            new SolidBrush(Color.FromArgb(213, 213, 213)),
+                            new SolidBrush(System.Drawing.Color.FromArgb(213, 213, 213)),
                             championshipX,
                             championshipY);; ;
 
@@ -290,7 +295,7 @@ namespace TTBot.Commands
                             graphics.DrawString(
                                 $"Round {e.Round}",
                                 largerFont,
-                                new SolidBrush(Color.FromArgb(213, 213, 213)),
+                                new SolidBrush(System.Drawing.Color.FromArgb(213, 213, 213)),
                                 roundX,
                                 roundY);
                         }
