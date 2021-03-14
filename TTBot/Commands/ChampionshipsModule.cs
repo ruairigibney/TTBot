@@ -24,17 +24,23 @@ namespace TTBot.Commands
         private readonly IPermissionService _permissionService;
         private readonly IExcelService _excelService;
         private readonly IEvents _events;
+        private readonly IEventAliasMapping _eventAliasMapping;
+        private readonly IExcelSheetEventMapping _excelSheetEventMapping;
 
         public ChampionshipsModule(
             IChampionshipResults results,
             IPermissionService permissionService,
             IExcelService excelService,
-            IEvents events)
+            IEvents events,
+            IEventAliasMapping eventAliasMapping,
+            IExcelSheetEventMapping excelSheetEventMapping)
         {
             _results = results ?? throw new ArgumentNullException(nameof(results));
             _permissionService = permissionService ?? throw new ArgumentNullException(nameof(permissionService));
             _excelService = excelService ?? throw new ArgumentNullException(nameof(excelService));
             _events = events ?? throw new ArgumentNullException(nameof(events));
+            _eventAliasMapping = eventAliasMapping ?? throw new ArgumentNullException(nameof(eventAliasMapping));
+            _excelSheetEventMapping = excelSheetEventMapping ?? throw new ArgumentNullException(nameof(excelSheetEventMapping));
         }
 
         [Command("import")]
@@ -75,7 +81,8 @@ namespace TTBot.Commands
                             listOfUnknownChampionships.Add(excelDriverDataModel.Championship);
                         }
                         continue;
-                    } else
+                    }
+                    else
                     {
                         if (!listOfSuccessfulyUploadedChampionships.Contains(excelDriverDataModel.Championship))
                         {
@@ -99,7 +106,6 @@ namespace TTBot.Commands
                         Car = excelDriverDataModel.Car,
                         Points = excelDriverDataModel.Points,
                         Diff = excelDriverDataModel.Diff
-
                     };
 
                     championshipResults.Add(championshipResult);
@@ -123,7 +129,8 @@ namespace TTBot.Commands
                 }
 
 
-            } catch (Exception ex)
+            }
+            catch (Exception ex)
             {
                 sb.AppendLine($"Error when doing import: {ex.Message}");
             }
@@ -166,7 +173,8 @@ namespace TTBot.Commands
                         sb.AppendLine($" - {e}");
                     }
                 }
-            } catch (Exception ex)
+            }
+            catch (Exception ex)
             {
                 sb.AppendLine($"Error when doing list: {ex.Message}");
             }
@@ -186,7 +194,8 @@ namespace TTBot.Commands
                 sb.AppendLine("No championship provided");
                 await ReplyAsync(sb.ToString());
                 return;
-            } else if (args == "all")
+            }
+            else if (args == "all")
             {
                 var author = Context.Message.Author as SocketGuildUser;
                 if (!await _permissionService.UserIsModeratorAsync(Context, author))
@@ -200,35 +209,40 @@ namespace TTBot.Commands
                 {
                     await writeStandingsForChampionship(c.ShortName, guildId);
                 }
-            } else
+            }
+            else
             {
-                var championship = ChampionshipAliasesModel.GetEventShortnameFromAlias(args);
-                if (championship == null)
-                {
-                    sb.AppendLine($"Championship alias {args} not found");
-                    await ReplyAsync(sb.ToString());
-                    return;
-                }
-                await writeStandingsForChampionship(championship, guildId);
+                await writeStandingsForChampionship(args, guildId);
             }
         }
 
-        private async Task writeStandingsForChampionship(string championship, ulong guildId)
+        private async Task writeStandingsForChampionship(string alias, ulong guildId)
         {
 
             var sb = new StringBuilder();
             try
             {
-                var e = await _events.GetActiveEvent(championship, guildId);
+                var aliasEvent = await _eventAliasMapping.GetActiveEventFromAliasAsync(alias);
+                var activeEvent = await _events.GetActiveEvent(alias, guildId);
+                if (aliasEvent == null && activeEvent == null)
+                {
+                    sb.AppendLine($"Championship alias {alias} not found");
+                    await ReplyAsync(sb.ToString());
+                    return;
+                }
+
+                var eventId = activeEvent != null ? activeEvent.Id : aliasEvent.Id;
+
+                var e = await _events.GetActiveEvent(eventId);
                 if (e == null || e.Id == 0)
                 {
-                    sb.AppendLine($"Championship {championship} not found");
+                    sb.AppendLine($"Championship {eventId} not found");
                     await ReplyAsync(sb.ToString());
                     return;
                 }
                 else
                 {
-                    var eventId = e.Id;
+                    var championship = e.ShortName;
                     var results = await _results.GetChampionshipResultsByIdAsync(eventId);
                     if (results.Count == 0)
                     {
@@ -274,7 +288,7 @@ namespace TTBot.Commands
                             longDriverFont = new Font(formula1FontFamily.Name, 18);
                             largerFont = new Font(formula1FontFamily.Name, 28);
                         }
-                        
+
                         // write championship
                         Size championshipSize = new Size(120, 200);
                         graphics.DrawString(
@@ -282,7 +296,7 @@ namespace TTBot.Commands
                             graphics.GetAdjustedFont(championship, largerFont, championshipSize),
                             new SolidBrush(Color.FromArgb(213, 213, 213)),
                             championshipX,
-                            championshipY);; ;
+                            championshipY); ; ;
 
                         // write round (if it's available)
                         if (e.Round != null && e.Round > 0)
@@ -300,7 +314,7 @@ namespace TTBot.Commands
                         {
                             graphics.FillRoundedRectangle(
                                 Brushes.White,
-                                Utilities.OperatingSystem.IsWindows() ? posXStart + 7: posXStart + 1,
+                                Utilities.OperatingSystem.IsWindows() ? posXStart + 7 : posXStart + 1,
                                 Utilities.OperatingSystem.IsWindows() ? y - 3 : y - 5,
                                 50,
                                 40,
@@ -355,10 +369,253 @@ namespace TTBot.Commands
             }
         }
 
+        [Command("alias")]
+        [Alias("a")]
+        public async Task Alias(string action = null, string alias = null, string eventShortName = null)
+        {
+            var author = Context.Message.Author as SocketGuildUser;
+            if (!await _permissionService.UserIsModeratorAsync(Context, author))
+            {
+                await Context.Channel.SendMessageAsync("You dont have permission to create aliases");
+                return;
+            }
+            var sb = new StringBuilder();
+            if (action == null)
+            {
+                sb.AppendLine("Action missing");
+                await ReplyAsync(sb.ToString());
+                return;
+            }
+
+            var guildId = Context.Guild.Id;
+
+            if (action == "add")
+            {
+                if (eventShortName == null || alias == null)
+                {
+                    sb.AppendLine("Details missing for the add");
+                    await ReplyAsync(sb.ToString());
+                    return;
+                }
+                var e = await _events.GetActiveEvent(eventShortName, guildId);
+                if (e == null)
+                {
+                    sb.AppendLine($"Unknown event with shortname {eventShortName}");
+                    await ReplyAsync(sb.ToString());
+                    return;
+                }
+
+                if (await _eventAliasMapping.ActiveEventExistsAsync(alias))
+                {
+                    sb.AppendLine($"Alias {alias} already exists on active event");
+                    await ReplyAsync(sb.ToString());
+                    return;
+                }
+
+                await _eventAliasMapping.AddAsync((ulong)e.Id, alias);
+                sb.AppendLine($"Alias {alias} added for event {eventShortName}");
+                await ReplyAsync(sb.ToString());
+                return;
+            }
+            else if (action == "remove")
+            {
+                if (alias == null)
+                {
+                    sb.AppendLine("Alias missing for the remove");
+                    await ReplyAsync(sb.ToString());
+                    return;
+                }
+                if (!await _eventAliasMapping.ActiveEventExistsAsync(alias))
+                {
+                    sb.AppendLine($"Alias {alias} does not exist on an active event");
+                    await ReplyAsync(sb.ToString());
+                    return;
+                }
+
+                var activeEvent = await _eventAliasMapping.GetActiveEventFromAliasAsync(alias);
+                var aliasMappingId = await _eventAliasMapping.GetAliasIdAsync(alias);
+                await _eventAliasMapping.RemoveAsync(aliasMappingId);
+                sb.AppendLine($"Alias {alias} removed for active event {activeEvent.ShortName}");
+                await ReplyAsync(sb.ToString());
+                return;
+
+            }
+            else if (action == "list")
+            {
+                var allActiveAliases = await _eventAliasMapping.GetAllActiveAliases();
+                var allActiveEvents = await _events.GetActiveEvents(guildId);
+                ulong eId = 0;
+
+                foreach (var item in allActiveAliases.Select((value, i) => (value, i)))
+                {
+                    var em = item.value;
+                    var index = item.i;
+
+                    // only list active events
+                    if (allActiveEvents.Where<Event>
+                            (e => (ulong)e.Id == em.EventId).Select(e => e.ShortName).FirstOrDefault() == null)
+                    {
+                        continue;
+                    }
+
+                        if (eId != em.EventId)
+                    {
+                        if (eId > 0)
+                        {
+                            sb.Append('.');
+                            sb.AppendLine();
+                        }
+                        sb.Append("***");
+                        sb.Append(allActiveEvents.Where<Event>
+                            (e => (ulong)e.Id == em.EventId).Select(e => e.ShortName).FirstOrDefault());
+                        sb.Append("***");
+                        sb.Append(": ");
+                    }
+                    else
+                    {
+                        sb.Append(", ");
+                    }
+
+                    sb.Append($"{em.Alias}");
+                    eId = em.EventId;
+                }
+                await ReplyAsync(sb.ToString());
+                return;
+            } else
+            {
+                sb.AppendLine("Incorrect action - must be either add, remove or list");
+            }
+
+            await ReplyAsync(sb.ToString());
+        }
+
+
+        [Command("worksheets")]
+        [Alias("w", "sheet", "sheets", "worksheet")]
+        public async Task Sheets(string action = null, string worksheet = null, string eventShortName = null, bool isRoundsSheet = false)
+        {
+            var author = Context.Message.Author as SocketGuildUser;
+            if (!await _permissionService.UserIsModeratorAsync(Context, author))
+            {
+                await Context.Channel.SendMessageAsync("You dont have permission to link worksheets");
+                return;
+            }
+            var sb = new StringBuilder();
+            if (action == null)
+            {
+                sb.AppendLine("Action missing");
+                await ReplyAsync(sb.ToString());
+                return;
+            }
+
+            var guildId = Context.Guild.Id;
+
+            if (action == "add")
+            {
+                if (eventShortName == null || worksheet == null)
+                {
+                    sb.AppendLine("Details missing for the add");
+                    await ReplyAsync(sb.ToString());
+                    return;
+                }
+                var e = await _events.GetActiveEvent(eventShortName, guildId);
+                if (e == null)
+                {
+                    sb.AppendLine($"Unknown event with shortname {eventShortName}");
+                    await ReplyAsync(sb.ToString());
+                    return;
+                }
+
+                if (await _excelSheetEventMapping.ActiveEventExistsAsync(worksheet))
+                {
+                    sb.AppendLine($"Sheetname {worksheet} already exists on active event");
+                    await ReplyAsync(sb.ToString());
+                    return;
+                }
+
+                await _excelSheetEventMapping.AddAsync((ulong)e.Id, worksheet, isRoundsSheet);
+                sb.AppendLine($"Worksheet {worksheet} added for event {eventShortName}");
+                await ReplyAsync(sb.ToString());
+                return;
+            }
+            else if (action == "remove")
+            {
+                if (worksheet == null)
+                {
+                    sb.AppendLine("Alias missing for the remove");
+                    await ReplyAsync(sb.ToString());
+                    return;
+                }
+                if (!await _excelSheetEventMapping.ActiveEventExistsAsync(worksheet))
+                {
+                    sb.AppendLine($"Worksheet {worksheet} does not exist on an active event");
+                    await ReplyAsync(sb.ToString());
+                    return;
+                }
+
+                var activeEvent = await _excelSheetEventMapping.GetActiveEventFromWorksheetAsync(worksheet);
+                var worksheetMappingId = await _excelSheetEventMapping.GetWorksheetMappingIdAsync(worksheet);
+
+                await _excelSheetEventMapping.RemoveAsync(worksheetMappingId);
+                sb.AppendLine($"Worksheet {worksheet} removed for active event {activeEvent.ShortName}");
+                await ReplyAsync(sb.ToString());
+                return;
+            }
+            else if (action == "list")
+            {
+                var allActiveWorksheets = await _excelSheetEventMapping.GetAllActiveWorksheetMappings();
+                var allActiveEvents = await _events.GetActiveEvents(guildId);
+                ulong eId = 0;
+
+                foreach (var item in allActiveWorksheets.Select((value, i) => (value, i)))
+                {
+                    var w = item.value;
+                    var index = item.i;
+
+                    // only list active events
+                    if (allActiveEvents.Where<Event>
+                            (e => (ulong)e.Id == w.EventId).Select(e => e.ShortName).FirstOrDefault() == null)
+                    {
+                        continue;
+                    }
+
+                    if (eId != w.EventId)
+                    {
+                        if (eId > 0)
+                        {
+                            sb.Append('.');
+                            sb.AppendLine();
+                        }
+                        sb.Append("***");
+                        sb.Append(allActiveEvents.Where<Event>
+                            (e => (ulong)e.Id == w.EventId).Select(e => e.ShortName).FirstOrDefault());
+                        sb.Append("***");
+                        sb.Append(": ");
+                    }
+                    else
+                    {
+                        sb.Append(", ");
+                    }
+
+                    sb.Append($"{w.Sheetname}");
+                    var sheetType = w.IsRoundsSheet ? "R" : "S";
+                    sb.Append($" *({sheetType})*");
+                    eId = w.EventId;
+                }
+                await ReplyAsync(sb.ToString());
+                return;
+            } else
+            {
+                sb.AppendLine("Incorrect action - must be either add, remove or list");
+            }
+
+            await ReplyAsync(sb.ToString());
+        }
+
         [Command("help")]
         public async Task Help()
         {
-            await Context.Channel.SendMessageAsync("Use `!championships list` to see a list of all championships with standings. To get the standings for a specific championship, " + 
+            await Context.Channel.SendMessageAsync("Use `!championships list` to see a list of all championships with standings. To get the standings for a specific championship, " +
                 "use `!championships standings` command with the name of the championship. For example `!championships standings MX5`.");
         }
     }

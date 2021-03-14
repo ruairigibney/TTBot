@@ -1,12 +1,13 @@
 ﻿using Discord;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using TTBot.Models;
 
 namespace TTBot.Services
 {
     public interface IExcelWrapper
     {
-        public List<ExcelDriverDataModel> GetExcelDriverData(Attachment attachment);
-        public List<ExcelChampionshipRoundModel> GetChampionshipRoundsData(Attachment attachment); 
+        public Task<List<ExcelDriverDataModel>> GetExcelDriverData(Attachment attachment);
+        public Task<List<ExcelChampionshipRoundModel>> GetChampionshipRoundsData(Attachment attachment); 
     }
 }

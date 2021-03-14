@@ -1,9 +1,7 @@
 ﻿using Discord;
 using System;
 using System.Collections.Generic;
-using System.Text;
 using System.Threading.Tasks;
-using TTBot.DataAccess;
 using TTBot.Models;
 
 namespace TTBot.Services
@@ -19,12 +17,12 @@ namespace TTBot.Services
 
         public async Task<List<ExcelChampionshipRoundModel>> DeriveRoundsFromAttachment(Attachment attachment)
         {
-            return _excelPackage.GetChampionshipRoundsData(attachment);
+            return await _excelPackage.GetChampionshipRoundsData(attachment);
         }
 
         public async Task<List<ExcelDriverDataModel>> ReadResultsDataFromAttachment(Attachment attachment)
         {
-            return _excelPackage.GetExcelDriverData(attachment);
+            return await _excelPackage.GetExcelDriverData(attachment);
         }
     }
 }

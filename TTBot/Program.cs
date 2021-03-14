@@ -271,6 +271,8 @@ namespace TTBot
                 connection.CreateTableIfNotExists<EventSignup>();
                 connection.CreateTableIfNotExists<ConfirmationCheck>();
                 connection.CreateTableIfNotExists<ChampionshipResultsModel>();
+                connection.CreateTableIfNotExists<EventAliasMappingModel>();
+                connection.CreateTableIfNotExists<ExcelSheetEventMappingModel>();
                 connection.Execute(@"CREATE VIEW IF NOT EXISTS EventsWithCount
                                     AS
                                     SELECT *, (select count(*) from EventSignup where EventId = event.Id) as ParticipantCount
@@ -306,6 +308,8 @@ namespace TTBot
             services.AddScoped<IChampionshipResults, ChampionshipResults>();
             services.AddScoped<IExcelService, ExcelService>();
             services.AddScoped<IExcelWrapper, ExcelWrapper>();
+            services.AddScoped<IEventAliasMapping, EventAliasMapping>();
+            services.AddScoped<IExcelSheetEventMapping, ExcelSheetEventMapping>();
             services.AddSingleton(_client);
         }
 
