@@ -22,5 +22,7 @@ namespace TTBot.Models
         public string DisplayName => ShortName ?? Name;
         public string MessageId { get; set; }
         public int? Round { get; set; }
+        public string LastRoundDate { get; set; }
+        public string LastRoundTrack { get; set; }
     }
 }

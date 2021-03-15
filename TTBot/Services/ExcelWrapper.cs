@@ -41,6 +41,7 @@ namespace TTBot.Services
                     int rowCount = worksheet.Dimension.End.Row;
                     int colCount = worksheet.Dimension.End.Column;
                     int maxRound = 0;
+                    string lastTrack = "", lastDate = "";
 
                     for (int c = 0; c < colCount; c++)
                     {
@@ -48,12 +49,21 @@ namespace TTBot.Services
 
                         if (worksheet.Cells[1, col].Text.ToLower().Contains("round")) {
                             var roundBeingRead = worksheet.Cells[1, col].Text.ToLower().Replace("round", "").Trim();
+                            var dateBeingRead = worksheet.Cells[2, col].Text;
+                            var trackBeingRead = worksheet.Cells[3, col].Text;
+
                             for (int r = 0; r < colCount; r++)
                             {
                                 var row = r + 5;
 
                                 if (!string.IsNullOrWhiteSpace(worksheet.Cells[row, col].Text)) {
                                     maxRound = int.Parse(roundBeingRead);
+                                    lastDate = dateBeingRead;
+
+                                    var lastTrackArray = trackBeingRead.Split();
+                                    lastTrack = lastTrackArray[0] + " " +
+                                        (lastTrackArray.Length > 1 ? lastTrackArray[1] : "");
+
                                     c++; // skip the Fast Lap column
                                     break;
                                 }
@@ -64,7 +74,9 @@ namespace TTBot.Services
                     excelChampionshipRounds.Add(new ExcelChampionshipRoundModel()
                     {
                         Championship = eventShortname,
-                        Round = maxRound
+                        Round = maxRound,
+                        LastRoundDate = lastDate,
+                        LastRoundTrack = lastTrack
                     });
                 }
             }

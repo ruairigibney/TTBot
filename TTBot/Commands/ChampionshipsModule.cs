@@ -126,6 +126,8 @@ namespace TTBot.Commands
                     }
 
                     e.Round = c.Round;
+                    e.LastRoundTrack = c.LastRoundTrack;
+                    e.LastRoundDate = c.LastRoundDate;
                     await _events.SaveAsync(e);
                 }
 
@@ -258,10 +260,10 @@ namespace TTBot.Commands
 
                     int posXStart = Utilities.OperatingSystem.IsWindows() ? 100 : 110;
                     int posYStart = 375;
-                    int championshipX = 250;
-                    int championshipY = 230;
-                    int roundX = 700;
-                    int roundY = 210;
+                    int championshipX = Utilities.OperatingSystem.IsWindows() ? 245 : 252;
+                    int championshipY = Utilities.OperatingSystem.IsWindows() ? 220 : 225;
+                    int roundX = 660;
+                    int roundY = 120;
 
                     var driverX = posXStart + 100;
                     var numberX = driverX + 400;
@@ -295,15 +297,24 @@ namespace TTBot.Commands
                         }
 
                         // write championship
-                        Size championshipSize = new Size(120, 200);
+                        var championshipXMax = 370;
+                        var championshipYMax = Utilities.OperatingSystem.IsWindows() ? 60 : 50;
+
+                        // For testing - uncomment to show rectangles
+                        /* Rectangle rect1 = new Rectangle(championshipX, championshipY, championshipXMax, championshipYMax);
+                        graphics.FillRectangle(
+                            new SolidBrush(System.Drawing.Color.FromArgb(0, 0, 0)), rect1);
+                        */
+
+                        Size championshipSize = new Size(championshipXMax, championshipYMax);
                         graphics.DrawString(
                             championship,
                             graphics.GetAdjustedFont(championship, largerFont, championshipSize),
                             new SolidBrush(System.Drawing.Color.FromArgb(213, 213, 213)),
                             championshipX,
-                            championshipY); ; ;
+                            championshipY);
 
-                        // write round (if it's available)
+                        // write round details (if available)
                         if (e.Round != null && e.Round > 0)
                         {
                             graphics.DrawString(
@@ -312,6 +323,31 @@ namespace TTBot.Commands
                                 new SolidBrush(System.Drawing.Color.FromArgb(213, 213, 213)),
                                 roundX,
                                 roundY);
+
+                            graphics.DrawString(
+                                e.LastRoundDate,
+                                largerFont,
+                                new SolidBrush(System.Drawing.Color.FromArgb(213, 213, 213)),
+                                roundX,
+                                roundY + 50);
+
+                            var trackXMax = 330;
+                            var trackYMax = Utilities.OperatingSystem.IsWindows() ? 60 : 50;
+                            Size trackSize = new Size(trackXMax, trackYMax);
+
+                            // For testing - uncomment to show rectangles
+                            /*
+                            Rectangle rect2 = new Rectangle(roundX, roundY + 100, trackXMax, trackYMax);
+                            graphics.FillRectangle(
+                                new SolidBrush(System.Drawing.Color.FromArgb(0, 0, 0)), rect2);
+                            */
+
+                            graphics.DrawString(
+                                e.LastRoundTrack,
+                                graphics.GetAdjustedFont(e.LastRoundTrack, largerFont, trackSize),
+                                new SolidBrush(System.Drawing.Color.FromArgb(213, 213, 213)),
+                                roundX,
+                                roundY + 100);
                         }
 
                         int y = Utilities.OperatingSystem.IsWindows() ? posYStart - 1 : posYStart - 4;

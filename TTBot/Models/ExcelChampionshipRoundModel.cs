@@ -8,5 +8,7 @@ namespace TTBot.Models
     {
         public string Championship { get; set; }
         public int Round { get; set; }
+        public string LastRoundDate { get; set; }
+        public string LastRoundTrack { get; set; }
     }
 }
