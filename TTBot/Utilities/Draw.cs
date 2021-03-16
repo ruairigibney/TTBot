@@ -26,11 +26,11 @@ namespace TTBot.Utilities
 
         public static Font GetAdjustedFont(this Graphics graphic, string str, Font originalFont, Size containerSize)
         {
-            for (float adjustedSize = originalFont.Size; adjustedSize >= 0.1; adjustedSize -= 0.1f)
+            for (int adjustedSize = (int)originalFont.Size; adjustedSize >= 1; adjustedSize--)
             {
                 var testFont = new Font(originalFont.Name, adjustedSize, originalFont.Style);
 
-                var adjustedSizeNew = graphic.MeasureString(str, testFont, containerSize.Width);
+                var adjustedSizeNew = graphic.MeasureString(str, testFont, containerSize);
 
                 if (containerSize.Height > Convert.ToInt32(adjustedSizeNew.Height)
                     && containerSize.Width > Convert.ToInt32(adjustedSizeNew.Width))

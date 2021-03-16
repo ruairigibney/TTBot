@@ -331,8 +331,8 @@ namespace TTBot.Commands
                                 roundX,
                                 roundY + 50);
 
-                            var trackXMax = 330;
-                            var trackYMax = Utilities.OperatingSystem.IsWindows() ? 60 : 50;
+                            var trackXMax = 310;
+                            var trackYMax = Utilities.OperatingSystem.IsWindows() ? 60 : 40;
                             Size trackSize = new Size(trackXMax, trackYMax);
 
                             // For testing - uncomment to show rectangles
