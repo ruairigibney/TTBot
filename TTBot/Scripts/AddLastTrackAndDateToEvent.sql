@@ -1,0 +1,5 @@
+ALTER TABLE Event
+ADD LastRoundDate NVARCHAR NULL;
+
+ALTER TABLE Event
+ADD LastRoundTrack NVARCHAR NULL;

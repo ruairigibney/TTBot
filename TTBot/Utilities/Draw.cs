@@ -30,7 +30,7 @@ namespace TTBot.Utilities
             {
                 var testFont = new Font(originalFont.Name, adjustedSize, originalFont.Style);
 
-                var adjustedSizeNew = graphic.MeasureString(str, testFont, containerSize.Width);
+                var adjustedSizeNew = graphic.MeasureString(str, testFont, containerSize);
 
                 if (containerSize.Height > Convert.ToInt32(adjustedSizeNew.Height)
                     && containerSize.Width > Convert.ToInt32(adjustedSizeNew.Width))
