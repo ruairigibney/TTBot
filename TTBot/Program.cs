@@ -128,9 +128,22 @@ namespace TTBot
 
             await eventSignups.DeleteAsync(existingSignup);
             await eventParticipantSets.UpdatePinnedMessageForEvent(channel, @event, message);
-            await reaction.User.Value.SendMessageAsync($"Thanks! You've been removed from {@event.Name}.");
-
+            await NotifyUser(reaction, $"Thanks! You've been removed from {@event.Name}.", (SocketTextChannel)channel);
         }
+
+        private async Task NotifyUser(SocketReaction reaction, string message, SocketTextChannel textChannel)
+        {
+            try
+            {
+                await reaction.User.Value.SendMessageAsync(message);
+            } 
+            catch (Exception ex)
+            {
+                    await textChannel.Guild.Owner.SendMessageAsync($"Unable to send user {reaction.User.Value.Username}. Message: {message}" +
+                        $". Bot Encountered error: {ex.Message}");
+            }
+        }
+
         private async Task OnReactionAdd(Cacheable<IUserMessage, ulong> cacheableMessage, ISocketMessageChannel channel, SocketReaction reaction)
         {
             var eventSignups = _serviceProvider.GetRequiredService<IEventSignups>();
@@ -140,7 +153,7 @@ namespace TTBot
 
             async Task CancelSignup(string reason)
             {
-                await reaction.User.Value.SendMessageAsync(reason);
+                await NotifyUser(reaction, reason, (SocketTextChannel)channel);
                 await message.RemoveReactionAsync(reaction.Emote, reaction.User.Value);
                 return;
             }
@@ -215,7 +228,8 @@ namespace TTBot
                 await textChannel.Guild.Owner.SendMessageAsync($"{nickName} signed up to {@event.Name}");
             }
 
-            await reaction.User.Value.SendMessageAsync($"Thanks! You've been signed up to {@event.Name}. If you can no longer attend just remove your reaction from the signup message!");
+            await NotifyUser(reaction, $"Thanks! You've been signed up to {@event.Name}. " +
+                $"If you can no longer attend just remove your reaction from the signup message!", (SocketTextChannel)channel);
         }
 
         private async Task OnReactionChange(Cacheable<IUserMessage, ulong> cacheableMessage, ISocketMessageChannel channel, SocketReaction _)
