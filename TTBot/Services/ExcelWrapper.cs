@@ -43,20 +43,24 @@ namespace TTBot.Services
                     int maxRound = 0;
                     string lastTrack = "", lastDate = "";
 
-                    for (int c = 0; c < colCount; c++)
+                    for (int c = 1; c < colCount; c++)
                     {
-                        var col = c + 1;
+                        // find next round col
+                        while (!worksheet.Cells[1, c].Text.ToLower().Contains("round") && c < colCount)
+                        {
+                            c++;
+                        }
 
-                        if (worksheet.Cells[1, col].Text.ToLower().Contains("round")) {
-                            var roundBeingRead = worksheet.Cells[1, col].Text.ToLower().Replace("round", "").Trim();
-                            var dateBeingRead = worksheet.Cells[2, col].Text;
-                            var trackBeingRead = worksheet.Cells[3, col].Text;
+                        if (worksheet.Cells[1, c].Text.ToLower().Contains("round")) {
+                            var roundBeingRead = worksheet.Cells[1, c].Text.ToLower().Replace("round", "").Trim();
+                            var dateBeingRead = worksheet.Cells[2, c].Text;
+                            var trackBeingRead = worksheet.Cells[3, c].Text;
 
-                            for (int r = 0; r < colCount; r++)
+                            for (int r = 1; r < colCount; r++)
                             {
                                 var row = r + 5;
 
-                                if (!string.IsNullOrWhiteSpace(worksheet.Cells[row, col].Text)) {
+                                if (!string.IsNullOrWhiteSpace(worksheet.Cells[row, c].Text)) {
                                     maxRound = int.Parse(roundBeingRead);
                                     lastDate = dateBeingRead;
 
@@ -64,7 +68,7 @@ namespace TTBot.Services
                                     lastTrack = lastTrackArray[0] + " " +
                                         (lastTrackArray.Length > 1 ? lastTrackArray[1] : "");
 
-                                    c++; // skip the Fast Lap column
+                                    c++; // skip this column, so we can start looking for the next col
                                     break;
                                 }
                             }
