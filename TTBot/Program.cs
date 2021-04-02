@@ -42,7 +42,7 @@ namespace TTBot
         private async Task MainAsync(string[] args)
         {
             var services = new ServiceCollection();
-     
+
             InitServices(services, args);
             CreateDataDirectory();
             InitDapperTypeHandlers();
@@ -114,7 +114,7 @@ namespace TTBot
                         await guildUser.RemoveRoleAsync(role);
                     }
                     catch (Discord.Net.HttpException) { /* ignore forbidden exception */ }
-                    
+
                 }
 
                 nickName = string.IsNullOrEmpty(guildUser.Nickname) ? nickName : guildUser.Nickname;
@@ -128,19 +128,20 @@ namespace TTBot
 
             await eventSignups.DeleteAsync(existingSignup);
             await eventParticipantSets.UpdatePinnedMessageForEvent(channel, @event, message);
-            await NotifyUser(reaction, $"Thanks! You've been removed from {@event.Name}.", (SocketTextChannel)channel);
+            await NotifyUser(reaction, $"Thanks! You've been removed from {@event.Name}.");
         }
 
-        private async Task NotifyUser(SocketReaction reaction, string message, SocketTextChannel textChannel)
+        private async Task NotifyUser(SocketReaction reaction, string message)
         {
             try
             {
                 await reaction.User.Value.SendMessageAsync(message);
-            } 
+            }
             catch (Exception ex)
             {
-                    await textChannel.Guild.Owner.SendMessageAsync($"Unable to send user {reaction.User.Value.Username}. Message: {message}" +
-                        $". Bot Encountered error: {ex.Message}");
+                Console.WriteLine($"Unable to send message '{message}' " +
+                    $"to user '{reaction.User.Value.Username}' " +
+                    $"Error: '{ex.Message}'");
             }
         }
 
@@ -153,7 +154,7 @@ namespace TTBot
 
             async Task CancelSignup(string reason)
             {
-                await NotifyUser(reaction, reason, (SocketTextChannel)channel);
+                await NotifyUser(reaction, reason);
                 await message.RemoveReactionAsync(reaction.Emote, reaction.User.Value);
                 return;
             }
@@ -202,7 +203,7 @@ namespace TTBot
 
             var nickName = reaction.User.Value.Username;
 
-            if(reaction.User.Value is IGuildUser guildUser)
+            if (reaction.User.Value is IGuildUser guildUser)
             {
                 var role = guildUser.Guild.Roles.FirstOrDefault(x => x.Id.ToString() == @event.RoleId);
                 if (role != null)
@@ -212,7 +213,7 @@ namespace TTBot
                         await guildUser.AddRoleAsync(role);
                     }
                     catch (Discord.Net.HttpException) { /* ignore forbidden exception */ }
-                        
+
                 }
 
                 nickName = string.IsNullOrEmpty(guildUser.Nickname) ? nickName : guildUser.Nickname;
@@ -221,15 +222,13 @@ namespace TTBot
             await eventSignups.AddUserToEvent(@event, reaction.User.Value);
             await eventParticipantSets.UpdatePinnedMessageForEvent(channel, @event, message);
 
-            
-
-            if(channel is SocketTextChannel textChannel)
+            if (channel is SocketTextChannel textChannel)
             {
                 await textChannel.Guild.Owner.SendMessageAsync($"{nickName} signed up to {@event.Name}");
             }
 
             await NotifyUser(reaction, $"Thanks! You've been signed up to {@event.Name}. " +
-                $"If you can no longer attend just remove your reaction from the signup message!", (SocketTextChannel)channel);
+                $"If you can no longer attend just remove your reaction from the signup message!");
         }
 
         private async Task OnReactionChange(Cacheable<IUserMessage, ulong> cacheableMessage, ISocketMessageChannel channel, SocketReaction _)
