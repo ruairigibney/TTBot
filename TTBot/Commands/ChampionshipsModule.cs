@@ -202,7 +202,7 @@ namespace TTBot.Commands
                 await ReplyAsync(sb.ToString());
                 return;
             }
-            else if (args == "all")
+            else if (Regex.IsMatch(args, "top(3|5|10)$"))
             {
                 var author = Context.Message.Author as SocketGuildUser;
                 if (!await _permissionService.UserIsModeratorAsync(Context, author))
@@ -211,10 +211,12 @@ namespace TTBot.Commands
                     return;
                 }
 
+                var topDriversToDisplay = Int32.Parse(args.Replace("top", ""));
+
                 var championships = await _events.GetActiveEvents(guildId);
                 foreach (var c in championships)
                 {
-                    await writeStandingsForChampionship(c.ShortName, guildId);
+                    await writeStandingsForChampionship(c.ShortName, guildId, topDriversToDisplay);
                 }
             }
             else
@@ -223,7 +225,7 @@ namespace TTBot.Commands
             }
         }
 
-        private async Task writeStandingsForChampionship(string alias, ulong guildId)
+        private async Task writeStandingsForChampionship(string alias, ulong guildId, int topDriversToDisplay = 0)
         {
 
             var sb = new StringBuilder();
@@ -243,8 +245,11 @@ namespace TTBot.Commands
                 var e = await _events.GetActiveEvent(eventId);
                 if (e == null || e.Id == 0)
                 {
-                    sb.AppendLine($"Championship {eventId} not found");
-                    await ReplyAsync(sb.ToString());
+                    if (topDriversToDisplay == 0)
+                    {
+                        sb.AppendLine($"Championship {eventId} not found");
+                        await ReplyAsync(sb.ToString());
+                    }
                     return;
                 }
                 else
@@ -351,8 +356,14 @@ namespace TTBot.Commands
                         }
 
                         int y = Utilities.OperatingSystem.IsWindows() ? posYStart - 1 : posYStart - 4;
+                        int driverPosition = 0;
                         foreach (ChampionshipResultsModel r in orderedResults)
                         {
+                            if (topDriversToDisplay > 0 && driverPosition >= topDriversToDisplay)
+                            {
+                                break;
+                            }
+
                             graphics.FillRoundedRectangle(
                                 Brushes.White,
                                 Utilities.OperatingSystem.IsWindows() ? posXStart + 7 : posXStart + 1,
@@ -379,24 +390,35 @@ namespace TTBot.Commands
                             lastRowY = y;
 
                             y += 50;
+
+                            driverPosition++;
                         }
 
                         using (MemoryStream memoryStream = new MemoryStream())
                         {
+                            Bitmap imageToSave;
+
                             if (lastRowY + 75 < image.Height)
                             {
                                 var imageCropRect = new Rectangle(0, 0, image.Width, lastRowY + 75);
-                                image.Clone(imageCropRect, System.Drawing.Imaging.PixelFormat.Format32bppArgb)
-                                    .Save(memoryStream, System.Drawing.Imaging.ImageFormat.Png);
-                            }
-                            else
+                                imageToSave = image.Clone(imageCropRect, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+
+                            } else
                             {
-                                image.Save(memoryStream, System.Drawing.Imaging.ImageFormat.Png);
+                                imageToSave = image;
                             }
+
+                            if (topDriversToDisplay > 0)
+                            {
+                                imageToSave = Draw.Resize(imageToSave, 25);
+                            }
+
+                            imageToSave.Save(memoryStream, System.Drawing.Imaging.ImageFormat.Png);
 
                             memoryStream.Position = 0;
                             await Context.Channel.SendFileAsync
                                 (memoryStream, $"{championship}-standings-{DateTime.Now.ToString("yyyy-dd-M-HH-mm-ss")}.png");
+
                         }
 
                         font.Dispose(); numberFont.Dispose(); longDriverFont.Dispose(); largerFont.Dispose();
