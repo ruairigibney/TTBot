@@ -412,7 +412,7 @@ namespace TTBot.Commands
 
         [Command("alias")]
         [Alias("a")]
-        public async Task Alias(string action = null, string alias = null, string eventShortName = null)
+        public async Task Alias(string action = null, string aliases = null, string eventShortName = null)
         {
             var author = Context.Message.Author as SocketGuildUser;
             if (!await _permissionService.UserIsModeratorAsync(Context, author))
@@ -432,7 +432,7 @@ namespace TTBot.Commands
 
             if (action == "add")
             {
-                if (eventShortName == null || alias == null)
+                if (eventShortName == null || aliases == null)
                 {
                     sb.AppendLine("Details missing for the add");
                     await ReplyAsync(sb.ToString());
@@ -446,40 +446,47 @@ namespace TTBot.Commands
                     return;
                 }
 
-                if (await _eventAliasMapping.ActiveEventExistsAsync(alias))
-                {
-                    sb.AppendLine($"Alias {alias} already exists on active event");
-                    await ReplyAsync(sb.ToString());
-                    return;
-                }
+                var aliasesList = aliases.Split(',').Select(p => p.Trim()).ToList();
 
-                await _eventAliasMapping.AddAsync((ulong)e.Id, alias);
-                sb.AppendLine($"Alias {alias} added for event {eventShortName}");
-                await ReplyAsync(sb.ToString());
-                return;
+                foreach (var alias in aliasesList)
+                {
+                    if (await _eventAliasMapping.ActiveEventExistsAsync(alias))
+                    {
+                        sb.AppendLine($"Alias {alias} already exists on active event");
+                    }
+                    else
+                    {
+                        await _eventAliasMapping.AddAsync((ulong)e.Id, alias);
+                        sb.AppendLine($"Alias {alias} added for event {eventShortName}");
+                    }
+                }
             }
             else if (action == "remove")
             {
-                if (alias == null)
+                if (aliases == null)
                 {
-                    sb.AppendLine("Alias missing for the remove");
-                    await ReplyAsync(sb.ToString());
-                    return;
-                }
-                if (!await _eventAliasMapping.ActiveEventExistsAsync(alias))
-                {
-                    sb.AppendLine($"Alias {alias} does not exist on an active event");
+                    sb.AppendLine("Aliases missing for the remove");
                     await ReplyAsync(sb.ToString());
                     return;
                 }
 
-                var activeEvent = await _eventAliasMapping.GetActiveEventFromAliasAsync(alias);
-                var aliasMappingId = await _eventAliasMapping.GetAliasIdAsync(alias);
-                await _eventAliasMapping.RemoveAsync(aliasMappingId);
-                sb.AppendLine($"Alias {alias} removed for active event {activeEvent.ShortName}");
-                await ReplyAsync(sb.ToString());
-                return;
+                var aliasesList = aliases.Split(',').Select(p => p.Trim()).ToList();
 
+                foreach (var alias in aliasesList)
+                {
+                    if (!await _eventAliasMapping.ActiveEventExistsAsync(alias))
+                    {
+                        sb.AppendLine($"Alias {alias} does not exist on an active event");
+                    }
+                    else
+                    {
+                        var activeEvent = await _eventAliasMapping.GetActiveEventFromAliasAsync(alias);
+                        var aliasMappingId = await _eventAliasMapping.GetAliasIdAsync(alias);
+                        await _eventAliasMapping.RemoveAsync(aliasMappingId);
+                        sb.AppendLine($"Alias {alias} removed for active event {activeEvent.ShortName}");
+                    }
+
+                }
             }
             else if (action == "list")
             {
@@ -520,8 +527,6 @@ namespace TTBot.Commands
                     sb.Append($"{em.Alias}");
                     eId = em.EventId;
                 }
-                await ReplyAsync(sb.ToString());
-                return;
             } else
             {
                 sb.AppendLine("Incorrect action - must be either add, remove or list");
