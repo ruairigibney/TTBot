@@ -60,7 +60,8 @@ namespace TTBot.Services
                             {
                                 var row = r + 5;
 
-                                if (!string.IsNullOrWhiteSpace(worksheet.Cells[row, c].Text)) {
+                                if (!string.IsNullOrWhiteSpace(worksheet.Cells[row, c].Text) &&
+                                    int.Parse(worksheet.Cells[row, c].Text) > 0) {
                                     maxRound = int.Parse(roundBeingRead);
                                     lastDate = dateBeingRead;
 
