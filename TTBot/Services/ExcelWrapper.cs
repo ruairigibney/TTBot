@@ -53,7 +53,7 @@ namespace TTBot.Services
 
                         if (worksheet.Cells[1, c].Text.ToLower().Contains("round")) {
                             var roundBeingRead = worksheet.Cells[1, c].Text.ToLower().Replace("round", "").Trim();
-                            var dateBeingRead = worksheet.Cells[2, c].Text;
+                            var dateBeingRead = worksheet.Cells[2, c].GetValue<DateTime>();
                             var trackBeingRead = worksheet.Cells[3, c].Text;
 
                             for (int r = 1; r < colCount; r++)
@@ -63,7 +63,7 @@ namespace TTBot.Services
                                 if (!string.IsNullOrWhiteSpace(worksheet.Cells[row, c].Text) &&
                                     int.Parse(worksheet.Cells[row, c].Text) > 0) {
                                     maxRound = int.Parse(roundBeingRead);
-                                    lastDate = dateBeingRead;
+                                    lastDate = dateBeingRead.ToString("dd/MM/yyyy"); ;
 
                                     var lastTrackArray = trackBeingRead.Split();
                                     lastTrack = lastTrackArray[0] + " " +
