@@ -231,7 +231,7 @@ namespace TTBot.Commands
             var sb = new StringBuilder();
             try
             {
-                var aliasEvent = await _eventAliasMapping.GetActiveEventFromAliasAsync(alias);
+                var aliasEvent = await _eventAliasMapping.GetActiveEventFromAliasAsync(alias, guildId);
                 var activeEvent = await _events.GetActiveEvent(alias, guildId);
                 if (aliasEvent == null && activeEvent == null)
                 {
@@ -240,7 +240,7 @@ namespace TTBot.Commands
                     return;
                 }
 
-                var eventId = activeEvent != null ? activeEvent.Id : aliasEvent.Id;
+                var eventId = aliasEvent != null ? aliasEvent.Id : activeEvent.Id;
 
                 var e = await _events.GetActiveEvent(eventId);
                 if (e == null || e.Id == 0)
@@ -472,7 +472,7 @@ namespace TTBot.Commands
 
                 foreach (var alias in aliasesList)
                 {
-                    if (await _eventAliasMapping.ActiveEventExistsAsync(alias))
+                    if (await _eventAliasMapping.ActiveEventExistsAsync(alias, guildId))
                     {
                         sb.AppendLine($"Alias {alias} already exists on active event");
                     }
@@ -496,14 +496,14 @@ namespace TTBot.Commands
 
                 foreach (var alias in aliasesList)
                 {
-                    if (!await _eventAliasMapping.ActiveEventExistsAsync(alias))
+                    if (!await _eventAliasMapping.ActiveEventExistsAsync(alias, guildId))
                     {
                         sb.AppendLine($"Alias {alias} does not exist on an active event");
                     }
                     else
                     {
-                        var activeEvent = await _eventAliasMapping.GetActiveEventFromAliasAsync(alias);
-                        var aliasMappingId = await _eventAliasMapping.GetAliasIdAsync(alias);
+                        var activeEvent = await _eventAliasMapping.GetActiveEventFromAliasAsync(alias, guildId);
+                        var aliasMappingId = await _eventAliasMapping.GetAliasIdAsync(alias, guildId);
                         await _eventAliasMapping.RemoveAsync(aliasMappingId);
                         sb.AppendLine($"Alias {alias} removed for active event {activeEvent.ShortName}");
                     }

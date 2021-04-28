@@ -40,14 +40,14 @@ namespace TTBot.DataAccess
             }
         }
 
-        public async Task<Event> GetActiveEventFromAliasAsync(string alias)
+        public async Task<Event> GetActiveEventFromAliasAsync(string alias, ulong guildId)
         {
             using (var connection = _conFactory.Open())
             {
                 {
                     var q = connection.From<EventAliasMappingModel>()
                         .Join<EventAliasMappingModel, Event>()
-                        .Where<Event>(e => e.Closed == false);
+                        .Where<Event>(e => e.Closed == false && e.GuildId == guildId.ToString());
 
                     var mappings = await connection.SelectMultiAsync<EventAliasMappingModel, Event>(q);
                     return mappings.Find(em => getLowerTrimmedText(em.Item1.Alias) == getLowerTrimmedText(alias))?.Item2;
@@ -55,13 +55,13 @@ namespace TTBot.DataAccess
             }
         }
 
-        public async Task<int> GetAliasIdAsync(string alias)
+        public async Task<int> GetAliasIdAsync(string alias, ulong guildId)
         {
             using (var connection = _conFactory.Open())
             {
                 var q = connection.From<EventAliasMappingModel>()
                     .Join<EventAliasMappingModel, Event>()
-                    .Where<Event>(e => e.Closed == false);
+                    .Where<Event>(e => e.Closed == false && e.GuildId == guildId.ToString());
 
                 var mappings = await connection.SelectAsync(q);
                 return mappings.Find(em => getLowerTrimmedText(em.Alias) == getLowerTrimmedText(alias)).Id;
@@ -74,13 +74,13 @@ namespace TTBot.DataAccess
         }
 
 
-        public async Task<bool> ActiveEventExistsAsync(string alias)
+        public async Task<bool> ActiveEventExistsAsync(string alias, ulong guildId)
         {
             using (var connection = _conFactory.Open())
             {
                 var q = connection.From<EventAliasMappingModel>()
                     .Join<EventAliasMappingModel, Event>()
-                    .Where<Event>(e => e.Closed == false);
+                    .Where<Event>(e => e.Closed == false && e.GuildId == guildId.ToString());
 
                 var mappings = await connection.SelectAsync(q);
                 return mappings.Find(em => getLowerTrimmedText(em.Alias) == getLowerTrimmedText(alias)) != null;
