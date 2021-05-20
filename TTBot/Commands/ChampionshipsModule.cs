@@ -377,9 +377,21 @@ namespace TTBot.Commands
                                 : posXStart + 5;
 
                             graphics.DrawString(r.Pos.ToString(), numberFont, Brushes.Black, posX, y);
+
+                            var driverXMax = Utilities.OperatingSystem.IsWindows() ? 400 : 380;
+                            var driverYMax = Utilities.OperatingSystem.IsWindows() ? 50 : 40;
+                            Size driverSize = new Size(driverXMax, driverYMax);
+
+                            // For testing - uncomment to show rectangles
+                            /*
+                            Rectangle rect3 = new Rectangle(driverX, y, driverXMax, driverYMax);
+                            graphics.FillRectangle(
+                                new SolidBrush(System.Drawing.Color.FromArgb(0, 0, 0)), rect3);
+                            */
+
                             graphics.DrawString(
                                 r.Driver,
-                                r.Driver.Length <= 25 ? font : longDriverFont,
+                                graphics.GetAdjustedFont(r.Driver, font, driverSize),
                                 Brushes.White,
                                 driverX,
                                     r.Driver.Length <= 25 ? y : y + 6);
