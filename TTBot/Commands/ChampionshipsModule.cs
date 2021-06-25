@@ -202,7 +202,7 @@ namespace TTBot.Commands
                 await ReplyAsync(sb.ToString());
                 return;
             }
-            else if (Regex.IsMatch(args, "top(3|5|10)$"))
+            else if (Regex.IsMatch(args, "top(3|5|10|50)$"))
             {
                 var author = Context.Message.Author as SocketGuildUser;
                 if (!await _permissionService.UserIsModeratorAsync(Context, author))
@@ -216,7 +216,8 @@ namespace TTBot.Commands
                 var championships = await _events.GetActiveEvents(guildId);
                 foreach (var c in championships)
                 {
-                    await writeStandingsForChampionship(c.ShortName, guildId, topDriversToDisplay);
+                    var alias = c.ShortName != null ? c.ShortName : c.Name;
+                    await writeStandingsForChampionship(alias, guildId, topDriversToDisplay);
                 }
             }
             else
@@ -528,7 +529,7 @@ namespace TTBot.Commands
                         continue;
                     }
 
-                        if (eId != em.EventId)
+                    if (eId != em.EventId)
                     {
                         if (eId > 0)
                         {
