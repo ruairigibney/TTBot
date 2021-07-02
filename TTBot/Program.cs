@@ -152,7 +152,8 @@ namespace TTBot
 
             if (reaction.User.Value is IGuildUser user) {
                 var moderatorService = _serviceProvider.GetRequiredService<IModerator>();
-                if ((user.GuildPermissions.ManageGuild || await moderatorService.GetLeaderboardModeratorAsync(user.GuildId, user.Id) != null) 
+                var moderators = await moderatorService.GetLeaderboardModeratorsAsync(user.GuildId);
+                if ((user.GuildPermissions.ManageGuild || moderators.Exists(m => user.RoleIds.Any(r => r.ToString() == m.RoleId)))
                     && reaction.Emote.Name == "❌")
                 {
                     var eventParticipantService = _serviceProvider.GetRequiredService<IEventParticipantService>();
